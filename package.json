@@ -1,0 +1,37 @@
+{
+  "name": "dotadd.toolset",
+  "version": "0.0.1",
+  "description": "",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc && npm run build-browser && npm run build-cjs",
+    "build-browser": "cross-env BABEL_ENV=browser babel ./build --out-dir ./browser --copy-files",
+    "build-cjs": "cross-env BABEL_ENV=cjs babel ./build --out-dir ./cjs --source-maps --copy-files"
+  },
+  "bin": {
+    "dotaddtool": "./bin/dotaddtool.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smp-3d/dotadd.toolset.git"
+  },
+  "author": "Jonas Ohland",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/smp-3d/dotadd.toolset/issues"
+  },
+  "homepage": "https://github.com/smp-3d/dotadd.toolset#readme",
+  "dependencies": {
+    "@babel/polyfill": "^7.4.4",
+    "core-js": "^2.6.9",
+    "dotadd.js": "github:smp-3d/dotadd.js",
+    "fast-xml-parser": "^3.12.20"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "cross-env": "^5.2.1",
+    "typescript": "^3.6.2"
+  }
+}
