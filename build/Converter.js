@@ -1,9 +1,11 @@
 import { ContainerType } from './ADCFormat';
-import AmbidecodeFormat from './AmbidecodeFormat';
+import AmbidecodeCoefs from './AmbidecodeCoefs';
+import AmbidecodeSettings from './AmbidecodeSettings';
 import IEMFormat from './IEMFormat';
 import { parse as parse_xml } from 'fast-xml-parser';
 let formats = [
-    AmbidecodeFormat,
+    AmbidecodeCoefs,
+    AmbidecodeSettings,
     IEMFormat
 ];
 export class ParseResults {
@@ -12,9 +14,9 @@ export class ParseResults {
     }
 }
 export class ConvertableTextFile {
-    constructor() {
-        this.filename = "";
-        this.data = "";
+    constructor(fname, data) {
+        this.filename = fname;
+        this.data = data;
     }
 }
 export class ConverterOption {
@@ -68,10 +70,13 @@ export const Converter = {
             switch (ftype) {
                 case 'json':
                     this._do_parse_json(file, results, options);
+                    break;
                 case 'xml':
-                    this._do_parse_json(file, results, options);
+                    this._do_parse_xml(file, results, options);
+                    break;
                 case 'add':
                     this._do_parse_add(file, results, options);
+                    break;
             }
         }
     },
@@ -89,10 +94,17 @@ export const Converter = {
     },
     _do_parse_native(file, carry, opts, obj, container_type) {
         let parsers_to_try = [];
+        let output_file = opts.use('output');
+        if (output_file)
+            console.log('output file: ' + output_file);
+        console.log();
+        console.log("Converting: " + file.filename);
         for (let format of formats) {
             if (format.container_type() === container_type && format.test(obj))
                 parsers_to_try.push(format);
         }
+        console.log('Matched the following parsers: ');
+        parsers_to_try.forEach(p => console.log(p.name));
         parsers_to_try.forEach(parser => parser.parse(obj, file.filename, carry, opts));
     }
 };

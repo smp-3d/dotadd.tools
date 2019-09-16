@@ -4,6 +4,7 @@ export declare class ParseResults {
     results: ADD[];
 }
 export declare class ConvertableTextFile {
+    constructor(fname: string, data: string);
     filename: string;
     data: string;
 }

@@ -7,7 +7,9 @@ exports.Converter = exports.ConverterOptions = exports.ConverterOption = exports
 
 var _ADCFormat = require("./ADCFormat");
 
-var _AmbidecodeFormat = _interopRequireDefault(require("./AmbidecodeFormat"));
+var _AmbidecodeCoefs = _interopRequireDefault(require("./AmbidecodeCoefs"));
+
+var _AmbidecodeSettings = _interopRequireDefault(require("./AmbidecodeSettings"));
 
 var _IEMFormat = _interopRequireDefault(require("./IEMFormat"));
 
@@ -15,7 +17,7 @@ var _fastXmlParser = require("fast-xml-parser");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-let formats = [_AmbidecodeFormat.default, _IEMFormat.default];
+let formats = [_AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
 
 class ParseResults {
   constructor() {
@@ -27,9 +29,9 @@ class ParseResults {
 exports.ParseResults = ParseResults;
 
 class ConvertableTextFile {
-  constructor() {
-    this.filename = "";
-    this.data = "";
+  constructor(fname, data) {
+    this.filename = fname;
+    this.data = data;
   }
 
 }
@@ -108,12 +110,17 @@ const Converter = {
         case 'json':
           this._do_parse_json(file, results, options);
 
+          break;
+
         case 'xml':
-          this._do_parse_json(file, results, options);
+          this._do_parse_xml(file, results, options);
+
+          break;
 
         case 'add':
           this._do_parse_add(file, results, options);
 
+          break;
       }
     }
   },
@@ -136,11 +143,17 @@ const Converter = {
 
   _do_parse_native(file, carry, opts, obj, container_type) {
     let parsers_to_try = [];
+    let output_file = opts.use('output');
+    if (output_file) console.log('output file: ' + output_file);
+    console.log();
+    console.log("Converting: " + file.filename);
 
     for (let format of formats) {
       if (format.container_type() === container_type && format.test(obj)) parsers_to_try.push(format);
     }
 
+    console.log('Matched the following parsers: ');
+    parsers_to_try.forEach(p => console.log(p.name));
     parsers_to_try.forEach(parser => parser.parse(obj, file.filename, carry, opts));
   }
 

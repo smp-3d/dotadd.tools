@@ -3,14 +3,14 @@ import { ParseResults, ConverterOptions, ConverterOption } from './Converter';
 import { ADD, Matrix } from 'dotadd.js';
 
 @_static_implements<ADCFormat>()
-export default class AmbidecodeFormat {
+export default class AmbidecodeCoefs {
 
     static getName(): string {
         return "Ambidecode XML Configuration Files"
     }  
       
     static getDescription(): string {
-        return "Exported and Imported by the ICST Ambisonics Externals for Max/MSP. Consists of a settings and a coefficents file";
+        return "Exported and Imported by the ICST Ambisonics Externals for Max/MSP.";
     }
 
     static container_type() : ContainerType {
@@ -18,15 +18,12 @@ export default class AmbidecodeFormat {
     }
 
     static test(obj: Object): Boolean {
-        return obj.hasOwnProperty("ambidecode-coefs") 
-                || obj.hasOwnProperty("ambidecode-settings");
+        return obj.hasOwnProperty("ambidecode-coefs");
     }
    
     static parse(obj: Object, filename: string, carry: ParseResults, opts: ConverterOptions) {
 
         let add = new ADD();
-
-        let fnorm_opt = opts.use('norm');
 
     }
 

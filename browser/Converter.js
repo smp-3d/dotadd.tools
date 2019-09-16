@@ -1,23 +1,24 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "./AmbidecodeFormat", "./IEMFormat", "fast-xml-parser"], factory);
+    define(["exports", "./ADCFormat", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "fast-xml-parser"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("./AmbidecodeFormat"), require("./IEMFormat"), require("fast-xml-parser"));
+    factory(exports, require("./ADCFormat"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("fast-xml-parser"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.AmbidecodeFormat, global.IEMFormat, global.fastXmlParser);
+    factory(mod.exports, global.ADCFormat, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.fastXmlParser);
     global.Converter = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _AmbidecodeFormat, _IEMFormat, _fastXmlParser) {
+})(this, function (_exports, _ADCFormat, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _fastXmlParser) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
     value: true
   });
   _exports.Converter = _exports.ConverterOptions = _exports.ConverterOption = _exports.ConvertableTextFile = _exports.ParseResults = void 0;
-  _AmbidecodeFormat = _interopRequireDefault(_AmbidecodeFormat);
+  _AmbidecodeCoefs = _interopRequireDefault(_AmbidecodeCoefs);
+  _AmbidecodeSettings = _interopRequireDefault(_AmbidecodeSettings);
   _IEMFormat = _interopRequireDefault(_IEMFormat);
 
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -30,7 +31,7 @@
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-  var formats = [_AmbidecodeFormat.default, _IEMFormat.default];
+  var formats = [_AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
 
   var ParseResults = function ParseResults() {
     _classCallCheck(this, ParseResults);
@@ -40,11 +41,11 @@
 
   _exports.ParseResults = ParseResults;
 
-  var ConvertableTextFile = function ConvertableTextFile() {
+  var ConvertableTextFile = function ConvertableTextFile(fname, data) {
     _classCallCheck(this, ConvertableTextFile);
 
-    this.filename = "";
-    this.data = "";
+    this.filename = fname;
+    this.data = data;
   };
 
   _exports.ConvertableTextFile = ConvertableTextFile;
@@ -157,12 +158,17 @@
             case 'json':
               this._do_parse_json(file, results, options);
 
+              break;
+
             case 'xml':
-              this._do_parse_json(file, results, options);
+              this._do_parse_xml(file, results, options);
+
+              break;
 
             case 'add':
               this._do_parse_add(file, results, options);
 
+              break;
           }
         }
       } catch (err) {
@@ -193,12 +199,20 @@
     _do_parse_add: function _do_parse_add(file, carry, opts) {},
     _do_parse_native: function _do_parse_native(file, carry, opts, obj, container_type) {
       var parsers_to_try = [];
+      var output_file = opts.use('output');
+      if (output_file) console.log('output file: ' + output_file);
+      console.log();
+      console.log("Converting: " + file.filename);
 
       for (var _i = 0, _formats = formats; _i < _formats.length; _i++) {
         var format = _formats[_i];
         if (format.container_type() === container_type && format.test(obj)) parsers_to_try.push(format);
       }
 
+      console.log('Matched the following parsers: ');
+      parsers_to_try.forEach(function (p) {
+        return console.log(p.name);
+      });
       parsers_to_try.forEach(function (parser) {
         return parser.parse(obj, file.filename, carry, opts);
       });
