@@ -2,15 +2,31 @@ import { ContainerType } from './ADCFormat';
 import AmbidecodeCoefs from './AmbidecodeCoefs';
 import AmbidecodeSettings from './AmbidecodeSettings';
 import IEMFormat from './IEMFormat';
+import ADDFormat from './ADDFormat';
 import { parse as parse_xml } from 'fast-xml-parser';
 let formats = [
+    ADDFormat,
     AmbidecodeCoefs,
     AmbidecodeSettings,
     IEMFormat
 ];
+export var ParserMessageLevels;
+(function (ParserMessageLevels) {
+    ParserMessageLevels[ParserMessageLevels["note"] = 0] = "note";
+    ParserMessageLevels[ParserMessageLevels["warn"] = 1] = "warn";
+    ParserMessageLevels[ParserMessageLevels["err"] = 2] = "err";
+})(ParserMessageLevels || (ParserMessageLevels = {}));
+export class ParserMessage {
+    constructor(mess, level) {
+        this.message = mess;
+        this.level = level;
+    }
+}
 export class ParseResults {
     constructor() {
         this.results = [];
+        this.incomplete_results = [];
+        this.messages = [];
     }
 }
 export class ConvertableTextFile {
@@ -79,6 +95,7 @@ export const Converter = {
                     break;
             }
         }
+        return results;
     },
     convert_binary(filename, data, options) {
     },
@@ -91,6 +108,7 @@ export const Converter = {
         this._do_parse_native(file, carry, opts, parse_xml(file.data, { ignoreAttributes: false }), ContainerType.XML);
     },
     _do_parse_add(file, carry, opts) {
+        ADDFormat.parse(JSON.parse(file.data), file.filename, carry, opts);
     },
     _do_parse_native(file, carry, opts, obj, container_type) {
         let parsers_to_try = [];

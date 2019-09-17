@@ -8,7 +8,7 @@
       exports: {}
     };
     factory(mod.exports, global.ADCFormat, global.dotadd);
-    global.AmbidecodeCoefs = mod.exports;
+    global.ADDFormat = mod.exports;
   }
 })(this, function (_exports, _ADCFormat, _dotadd) {
   "use strict";
@@ -36,61 +36,45 @@
     return c > 3 && r && Object.defineProperty(target, key, r), r;
   };
 
-  var AmbidecodeCoefs =
+  var ADDFormat =
   /*#__PURE__*/
   function () {
-    function AmbidecodeCoefs() {
-      _classCallCheck(this, AmbidecodeCoefs);
+    function ADDFormat() {
+      _classCallCheck(this, ADDFormat);
     }
 
-    _createClass(AmbidecodeCoefs, null, [{
+    _createClass(ADDFormat, null, [{
       key: "getName",
       value: function getName() {
-        return "Ambidecode XML Configuration Files";
+        return "Ambisonic Decoder Description";
       }
     }, {
       key: "getDescription",
       value: function getDescription() {
-        return "Exported and Imported by the ICST Ambisonics Externals for Max/MSP.";
+        return "Universal file format to describe Ambisonic decoders";
       }
     }, {
       key: "container_type",
       value: function container_type() {
-        return _ADCFormat.ContainerType.XML;
+        return _ADCFormat.ContainerType.JSON;
       }
     }, {
       key: "test",
       value: function test(obj) {
-        return obj.hasOwnProperty("ambidecode-coefs");
+        return obj.hasOwnProperty("name") && obj.hasOwnProperty("revision") && obj.hasOwnProperty("decoder") && obj.decoder.hasOwnProperty("filter") && obj.decoder.hasOwnProperty("matrices") && obj.decoder.hasOwnProperty("output");
       }
     }, {
       key: "parse",
       value: function parse(obj, filename, carry, opts) {
-        var incomplete = true;
-        var add = new _dotadd.ADD();
-        var ambc = obj['ambidecode-coefs'];
-
-        if (carry.incomplete_results.length) {
-          add = carry.incomplete_results.shift();
-          incomplete = false;
-        }
-
-        if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN")) throw new Error("Unsupported channel ordering in " + filename);
-        if (!add.decoder.matrices.length) add.addMatrix(new _dotadd.Matrix(0, 'unknown', []));else add.decoder.matrices[0].matrix = [];
-        add.decoder.matrices[0].matrix = ambc.speaker.map(function (spk) {
-          return spk.coef.map(function (cf) {
-            return cf['#text'];
-          });
-        });
-        if (incomplete) carry.incomplete_results.push(add);else carry.results.push(add);
-        console.log(JSON.stringify(add, null, 4));
+        var add = new _dotadd.ADD(obj);
+        carry.results.push(add);
       }
     }]);
 
-    return AmbidecodeCoefs;
+    return ADDFormat;
   }();
 
-  AmbidecodeCoefs = __decorate([(0, _ADCFormat._static_implements)()], AmbidecodeCoefs);
-  var _default = AmbidecodeCoefs;
+  ADDFormat = __decorate([(0, _ADCFormat._static_implements)()], ADDFormat);
+  var _default = ADDFormat;
   _exports.default = _default;
 });

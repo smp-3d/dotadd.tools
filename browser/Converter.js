@@ -1,25 +1,26 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "fast-xml-parser"], factory);
+    define(["exports", "./ADCFormat", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "./ADDFormat", "fast-xml-parser"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("fast-xml-parser"));
+    factory(exports, require("./ADCFormat"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("./ADDFormat"), require("fast-xml-parser"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.fastXmlParser);
+    factory(mod.exports, global.ADCFormat, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.ADDFormat, global.fastXmlParser);
     global.Converter = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _fastXmlParser) {
+})(this, function (_exports, _ADCFormat, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _ADDFormat, _fastXmlParser) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
     value: true
   });
-  _exports.Converter = _exports.ConverterOptions = _exports.ConverterOption = _exports.ConvertableTextFile = _exports.ParseResults = void 0;
+  _exports.Converter = _exports.ConverterOptions = _exports.ConverterOption = _exports.ConvertableTextFile = _exports.ParseResults = _exports.ParserMessage = _exports.ParserMessageLevels = void 0;
   _AmbidecodeCoefs = _interopRequireDefault(_AmbidecodeCoefs);
   _AmbidecodeSettings = _interopRequireDefault(_AmbidecodeSettings);
   _IEMFormat = _interopRequireDefault(_IEMFormat);
+  _ADDFormat = _interopRequireDefault(_ADDFormat);
 
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -31,12 +32,31 @@
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-  var formats = [_AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
+  var formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
+  var ParserMessageLevels;
+  _exports.ParserMessageLevels = ParserMessageLevels;
+
+  (function (ParserMessageLevels) {
+    ParserMessageLevels[ParserMessageLevels["note"] = 0] = "note";
+    ParserMessageLevels[ParserMessageLevels["warn"] = 1] = "warn";
+    ParserMessageLevels[ParserMessageLevels["err"] = 2] = "err";
+  })(ParserMessageLevels || (_exports.ParserMessageLevels = ParserMessageLevels = {}));
+
+  var ParserMessage = function ParserMessage(mess, level) {
+    _classCallCheck(this, ParserMessage);
+
+    this.message = mess;
+    this.level = level;
+  };
+
+  _exports.ParserMessage = ParserMessage;
 
   var ParseResults = function ParseResults() {
     _classCallCheck(this, ParseResults);
 
     this.results = [];
+    this.incomplete_results = [];
+    this.messages = [];
   };
 
   _exports.ParseResults = ParseResults;
@@ -185,6 +205,8 @@
           }
         }
       }
+
+      return results;
     },
     convert_binary: function convert_binary(filename, data, options) {},
     list_formats: function list_formats() {},
@@ -196,7 +218,9 @@
         ignoreAttributes: false
       }), _ADCFormat.ContainerType.XML);
     },
-    _do_parse_add: function _do_parse_add(file, carry, opts) {},
+    _do_parse_add: function _do_parse_add(file, carry, opts) {
+      _ADDFormat.default.parse(JSON.parse(file.data), file.filename, carry, opts);
+    },
     _do_parse_native: function _do_parse_native(file, carry, opts, obj, container_type) {
       var parsers_to_try = [];
       var output_file = opts.use('output');

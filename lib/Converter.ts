@@ -2,19 +2,38 @@ import { ADCFormat, ContainerType } from './ADCFormat';
 import AmbidecodeCoefs from './AmbidecodeCoefs';
 import AmbidecodeSettings from './AmbidecodeSettings';
 import IEMFormat from './IEMFormat';
+import ADDFormat from './ADDFormat';
 
 import { ADD } from 'dotadd.js';
 
 import { parse as parse_xml } from 'fast-xml-parser';
 
 let formats = [
+    ADDFormat,
     AmbidecodeCoefs,
     AmbidecodeSettings,
     IEMFormat
 ] as ADCFormat[];
 
+export enum ParserMessageLevels {
+    note, warn, err
+}
+
+export class ParserMessage {
+
+    constructor(mess: string, level: ParserMessageLevels){
+        this.message = mess;
+        this.level = level;
+    }
+
+    message: string;
+    level: ParserMessageLevels;
+}
+
 export class ParseResults {
     results: ADD[] = [];
+    incomplete_results: ADD[] = [];
+    messages: ParserMessage[] = [];
 }
 
 export class ConvertableTextFile {
@@ -117,6 +136,8 @@ export const Converter = {
             }
 
         }
+
+        return results;
     },
 
     convert_binary(filename: string, data: Uint8Array, options: ConverterOptions) {
@@ -141,7 +162,7 @@ export const Converter = {
     },
 
     _do_parse_add(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
-
+        ADDFormat.parse(JSON.parse(file.data), file.filename, carry, opts);
     },
 
     _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, 

@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Converter = exports.ConverterOptions = exports.ConverterOption = exports.ConvertableTextFile = exports.ParseResults = void 0;
+exports.Converter = exports.ConverterOptions = exports.ConverterOption = exports.ConvertableTextFile = exports.ParseResults = exports.ParserMessage = exports.ParserMessageLevels = void 0;
 
 var _ADCFormat = require("./ADCFormat");
 
@@ -13,15 +13,37 @@ var _AmbidecodeSettings = _interopRequireDefault(require("./AmbidecodeSettings")
 
 var _IEMFormat = _interopRequireDefault(require("./IEMFormat"));
 
+var _ADDFormat = _interopRequireDefault(require("./ADDFormat"));
+
 var _fastXmlParser = require("fast-xml-parser");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-let formats = [_AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
+let formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
+var ParserMessageLevels;
+exports.ParserMessageLevels = ParserMessageLevels;
+
+(function (ParserMessageLevels) {
+  ParserMessageLevels[ParserMessageLevels["note"] = 0] = "note";
+  ParserMessageLevels[ParserMessageLevels["warn"] = 1] = "warn";
+  ParserMessageLevels[ParserMessageLevels["err"] = 2] = "err";
+})(ParserMessageLevels || (exports.ParserMessageLevels = ParserMessageLevels = {}));
+
+class ParserMessage {
+  constructor(mess, level) {
+    this.message = mess;
+    this.level = level;
+  }
+
+}
+
+exports.ParserMessage = ParserMessage;
 
 class ParseResults {
   constructor() {
     this.results = [];
+    this.incomplete_results = [];
+    this.messages = [];
   }
 
 }
@@ -123,6 +145,8 @@ const Converter = {
           break;
       }
     }
+
+    return results;
   },
 
   convert_binary(filename, data, options) {},
@@ -139,7 +163,9 @@ const Converter = {
     }), _ADCFormat.ContainerType.XML);
   },
 
-  _do_parse_add(file, carry, opts) {},
+  _do_parse_add(file, carry, opts) {
+    _ADDFormat.default.parse(JSON.parse(file.data), file.filename, carry, opts);
+  },
 
   _do_parse_native(file, carry, opts, obj, container_type) {
     let parsers_to_try = [];

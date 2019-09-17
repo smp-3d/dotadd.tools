@@ -6,15 +6,18 @@ const columnify = require('columnify');
 
 module.exports = function(files, options){
 
-    let coptions = wrap_options(options, 'nojoin', 'norm', 'output');
+    let results;
+
+    let coptions = wrap_options(options, 'nojoin', 'norm', 'output', 'format');
 
     try {
 
-        let results = Converter.convert_string(
+        results = Converter.convert_string(
                     files.map(f => new ConvertableTextFile(f, fs.readFileSync(f).toString())), 
                                 coptions);
 
     } catch(e) {
+
         console.log(e);
     }
 
@@ -34,5 +37,7 @@ module.exports = function(files, options){
             )
         );
     }
+
+    console.log(results);
 
 }
