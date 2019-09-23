@@ -14,6 +14,12 @@ export declare class ParseResults {
     results: ADD[];
     incomplete_results: ADD[];
     messages: ParserMessage[];
+    output_files: {
+        name: string;
+        format: string;
+        container: string;
+        data: string;
+    }[];
 }
 export declare class ConvertableTextFile {
     constructor(fname: string, data: string);
@@ -40,10 +46,12 @@ export declare class ConverterOptions {
 }
 export declare const Converter: {
     convert_string(files: ConvertableTextFile[], options: ConverterOptions): ParseResults;
-    convert_binary(filename: string, data: Uint8Array, options: ConverterOptions): void;
-    list_formats(): void;
+    _do_convert(carry: ParseResults, opts: ConverterOptions): void;
+    _do_apply_options(carry: ParseResults, opts: ConverterOptions): void;
+    _do_apply_options_impl(add: ADD, opts: any): void;
     _do_parse_json(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
     _do_parse_xml(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
     _do_parse_add(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
+    _do_parse_csv(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
     _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, obj: Object, container_type: ContainerType): void;
 };

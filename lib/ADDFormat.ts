@@ -4,6 +4,10 @@ import { ADD } from 'dotadd.js';
 
 @_static_implements<ADCFormat>()
 export default class ADDFormat {
+    
+    static shortName(): string {
+        return "add";
+    }
 
     static getName(): string {
         return "Ambisonic Decoder Description"
@@ -18,20 +22,24 @@ export default class ADDFormat {
     }
 
     static test(obj: any): Boolean {
-        return obj.hasOwnProperty("name") 
-                && obj.hasOwnProperty("revision")
+        return obj.hasOwnProperty("name")
                 && obj.hasOwnProperty("decoder")
-                    && obj.decoder.hasOwnProperty("filter")
-                    && obj.decoder.hasOwnProperty("matrices")
-                    && obj.decoder.hasOwnProperty("output");
+                && obj.hasOwnProperty("revision");
     }
    
     static parse(obj: object, filename: string, carry: ParseResults, opts: ConverterOptions) {
 
         let add = new ADD(obj);
 
-        carry.results.push(add);
+        if(add.valid())
+            carry.results.push(add);
+        else
+            carry.incomplete_results.push(add);
 
+    }
+
+    static fromADD(add: ADD): string {
+        return add.export().serialize();
     }
 
 }

@@ -6,7 +6,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { ContainerType, _static_implements } from "./ADCFormat";
 import { ADD, Matrix } from 'dotadd.js';
+import { ParseError } from './Util';
 let AmbidecodeCoefs = class AmbidecodeCoefs {
+    static shortName() {
+        return "ambidecode";
+    }
     static getName() {
         return "Ambidecode XML Configuration Files";
     }
@@ -20,25 +24,33 @@ let AmbidecodeCoefs = class AmbidecodeCoefs {
         return obj.hasOwnProperty("ambidecode-coefs");
     }
     static parse(obj, filename, carry, opts) {
-        let incomplete = true;
         let add = new ADD();
         let ambc = obj['ambidecode-coefs'];
         if (carry.incomplete_results.length) {
-            add = carry.incomplete_results.shift();
-            incomplete = false;
+            add = carry.incomplete_results.pop();
+            console.log('using incomplete result from previous run');
         }
+        else
+            add.setName(filename);
         if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN"))
-            throw new Error("Unsupported channel ordering in " + filename);
+            throw new ParseError(filename, "Unsupported channel ordering");
         if (!add.decoder.matrices.length)
             add.addMatrix(new Matrix(0, 'unknown', []));
         else
             add.decoder.matrices[0].matrix = [];
         add.decoder.matrices[0].matrix = ambc.speaker.map((spk) => spk.coef.map((cf) => cf['#text']));
-        if (incomplete)
-            carry.incomplete_results.push(add);
-        else
+        add.createDefaultMetadata();
+        add.refitOutputChannels();
+        add.refitOutputMatrix();
+        if (add.valid())
             carry.results.push(add);
-        console.log(JSON.stringify(add, null, 4));
+        else {
+            console.log('stashing incomplete result: ' + filename);
+            carry.incomplete_results.push(add);
+        }
+    }
+    static fromADD(add) {
+        return "";
     }
 };
 AmbidecodeCoefs = __decorate([

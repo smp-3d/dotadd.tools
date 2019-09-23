@@ -3,16 +3,33 @@ import AmbidecodeCoefs from './AmbidecodeCoefs';
 import AmbidecodeSettings from './AmbidecodeSettings';
 import IEMFormat from './IEMFormat';
 import ADDFormat from './ADDFormat';
+import CSVFormat from './CSVFormat';
+import { Logger as console } from './Logger';
 
-import { ADD } from 'dotadd.js';
+import { ADD, Matrix } from 'dotadd.js';
 
 import { parse as parse_xml } from 'fast-xml-parser';
+import * as Papa from 'papaparse';
+
+import { ParseError } from './Util';
+
+function containerTypeToString(ty: ContainerType): string {
+    switch(ty){
+        case ContainerType.CSV:
+            return "csv";
+        case ContainerType.JSON:
+            return "json";
+        case ContainerType.XML:
+            return "xml";
+    }
+}
 
 let formats = [
     ADDFormat,
     AmbidecodeCoefs,
     AmbidecodeSettings,
-    IEMFormat
+    IEMFormat,
+    CSVFormat
 ] as ADCFormat[];
 
 export enum ParserMessageLevels {
@@ -34,6 +51,12 @@ export class ParseResults {
     results: ADD[] = [];
     incomplete_results: ADD[] = [];
     messages: ParserMessage[] = [];
+    output_files: {
+        name: string
+        format: string,
+        container: string,
+        data: string
+    }[] = [];
 }
 
 export class ConvertableTextFile {
@@ -96,6 +119,7 @@ export class ConverterOptions {
     }
 
     getUnused(): ConverterOption[] {
+
         return this.options.reduce((carry, current) => {
             !current.used ? carry.push(current) : null;
             return carry;
@@ -116,12 +140,19 @@ export const Converter = {
 
             let ftype = file.filename.slice((file.filename.lastIndexOf(".") - 1 >>> 0) + 2);
 
-            if (!(ftype === 'xml' || ftype === 'json' || ftype === 'add')) {
+            console.log("Processing file: " + file.filename);
+            console.log("Filetype:        " + ftype);
+
+            if (!(ftype === 'xml' 
+                || ftype === 'json' 
+                || ftype === 'add')) {
                 if (file.data.charAt(0) === '<')
                     ftype = 'xml';
                 else if (file.data.charAt(0) === '{' || file.data.charAt(0) === '[')
                     ftype = 'json';
             }
+
+            file.filename = file.filename.replace(/^.*[\\\/]/, '').split('.').slice(0, -1).join('.');
 
             switch (ftype) {
                 case 'json':
@@ -133,19 +164,132 @@ export const Converter = {
                 case 'add':
                     this._do_parse_add(file, results, options);
                     break;
+                case 'csv':
+                    this._do_parse_csv(file, results, options);
+                    break;
             }
 
         }
 
+        console.log("Applying command line options");
+        this._do_apply_options(results, options);
+
+        this._do_convert(results, options);
+
         return results;
     },
 
-    convert_binary(filename: string, data: Uint8Array, options: ConverterOptions) {
+    _do_convert(carry: ParseResults, opts: ConverterOptions){
+        
+        let ofopt = opts.use('format');
+        let output = opts.use('output');
+
+        let fileext = "", format: string;
+
+        if(output)
+            fileext = output.slice((output.lastIndexOf(".") - 1 >>> 0) + 2);
+
+        if(ofopt)
+            format = ofopt;
+        else if(fileext.length)
+            format = fileext;
+        else
+            format = 'add';
+
+
+        let converter = formats.find(frm => frm.shortName() == format);
+
+        if(converter){
+
+
+            console.log("Using '" + converter.getName() + "' exporter");
+
+            carry.results.forEach(res => {
+
+                let data = (<ADCFormat> converter).fromADD(res);
+
+
+                console.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString((<ADCFormat> converter).container_type()));
+
+                carry.output_files.push({
+                    name: res.name,
+                    format: format,
+                    container: containerTypeToString((<ADCFormat> converter).container_type()),
+                    data: data
+                });
+
+            });
+
+        } else throw new Error("Exporter '" + format + "' not found");
 
     },
 
-    list_formats() {
+    _do_apply_options(carry: ParseResults, opts: ConverterOptions){
 
+        let mopts = {
+            description: opts.use('description'),
+            name: opts.use('name'),
+            author: opts.use('author'),
+            version: opts.use('version'),
+            norm: opts.use('norm'),
+            renormalize: opts.use('reNorm'),
+        }
+
+        carry.results.forEach(res => this._do_apply_options_impl(res, mopts));
+        carry.incomplete_results.forEach(res => this._do_apply_options_impl(res, mopts));
+
+        while(carry.incomplete_results.length){
+
+            let add = carry.incomplete_results.shift();
+
+            if(add){
+
+                console.log("reevaluating ADD '" + add.name + "'");
+
+                if(add.valid()){
+                    console.log("is valid now, appending to valid results");
+                    carry.results.push(add);
+                }
+            }
+            
+        }
+
+    },
+
+    _do_apply_options_impl(add: ADD, opts: any){
+
+        if(opts.author && typeof opts.author == 'string'){
+            console.log("setting author: " + opts.author);
+            add.setAuthor(opts.author);
+        }
+
+        if(opts.name && typeof opts.name == 'string'){
+            console.log("setting name: " + opts.name);
+            add.setName(opts.name);
+        }
+
+        if(opts.description && typeof opts.description == 'string'){
+            console.log("setting description: " + opts.description);
+            add.setDescription(opts.description);
+        }
+
+        if(opts.hasOwnProperty('version') && typeof opts.version == 'number'){
+            console.log("setting version: " + opts.version);
+            add.setVersion(Number.parseInt(opts.version));
+        }
+
+        if(opts.hasOwnProperty('norm') && typeof opts.norm == 'string'){
+            console.log("setting normalisation: " + opts.norm)
+            add.decoder.matrices.forEach((dec: Matrix) => dec.setNormalisation(opts.norm));
+        }
+
+        if(opts.renormalize && typeof opts.renormalize == 'string'){
+            console.log("renormalizing matrices to " + opts.renormalize);
+            if(opts.renormalize.toLowerCase() == 'sn3d' ||
+                opts.renormalize.toLowerCase() == 'n3d'){
+                add.decoder.matrices.forEach(mat => mat.renormalizeTo(opts.renormalize));
+            }
+        }
     },
 
     _do_parse_json(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
@@ -162,7 +306,13 @@ export const Converter = {
     },
 
     _do_parse_add(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
+        console.log("Loading .add file '" + file.filename + "'");
         ADDFormat.parse(JSON.parse(file.data), file.filename, carry, opts);
+    },
+
+    _do_parse_csv(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
+        console.log("Parsing CSV file '" + file.filename + "'");
+        CSVFormat.parse(Papa.parse(file.data), file.filename, carry, opts);
     },
 
     _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, 
@@ -170,25 +320,14 @@ export const Converter = {
 
         let parsers_to_try = [] as ADCFormat[];
 
-        let output_file = opts.use('output');
-
-        if(output_file)
-            console.log('output file: ' + output_file);
-
-        console.log();
-        console.log("Converting: " + file.filename);
-
         for (let format of formats) {
             if (format.container_type() === container_type && format.test(obj))
                 parsers_to_try.push(format);
         }
-
-        console.log('Matched the following parsers: ');
-
-        parsers_to_try.forEach(p => console.log(p.name));
+        
+        console.log("Parsing '" + file.filename + "' with '" + parsers_to_try.map(p => p.getName() + "' parser"));
 
         parsers_to_try.forEach(parser => parser.parse(obj, file.filename, carry, opts));
 
     }
-
 }

@@ -7,6 +7,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 import { ContainerType, _static_implements } from "./ADCFormat";
 import { ADD } from 'dotadd.js';
 let ADDFormat = class ADDFormat {
+    static shortName() {
+        return "add";
+    }
     static getName() {
         return "Ambisonic Decoder Description";
     }
@@ -18,15 +21,18 @@ let ADDFormat = class ADDFormat {
     }
     static test(obj) {
         return obj.hasOwnProperty("name")
-            && obj.hasOwnProperty("revision")
             && obj.hasOwnProperty("decoder")
-            && obj.decoder.hasOwnProperty("filter")
-            && obj.decoder.hasOwnProperty("matrices")
-            && obj.decoder.hasOwnProperty("output");
+            && obj.hasOwnProperty("revision");
     }
     static parse(obj, filename, carry, opts) {
         let add = new ADD(obj);
-        carry.results.push(add);
+        if (add.valid())
+            carry.results.push(add);
+        else
+            carry.incomplete_results.push(add);
+    }
+    static fromADD(add) {
+        return add.export().serialize();
     }
 };
 ADDFormat = __decorate([

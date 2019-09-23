@@ -1,16 +1,16 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "./Converter", "dotadd.js"], factory);
+    define(["exports", "./ADCFormat", "dotadd.js", "./Util"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("./Converter"), require("dotadd.js"));
+    factory(exports, require("./ADCFormat"), require("dotadd.js"), require("./Util"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.Converter, global.dotadd);
+    factory(mod.exports, global.ADCFormat, global.dotadd, global.Util);
     global.AmbidecodeSettings = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _Converter, _dotadd) {
+})(this, function (_exports, _ADCFormat, _dotadd, _Util) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
@@ -44,6 +44,11 @@
     }
 
     _createClass(AmbidecodeSettings, null, [{
+      key: "shortName",
+      value: function shortName() {
+        return "ambidecode_settings";
+      }
+    }, {
       key: "getName",
       value: function getName() {
         return "Ambidecode XML Settings Files";
@@ -66,39 +71,42 @@
     }, {
       key: "parse",
       value: function parse(obj, filename, carry, opts) {
-        var incomplete = true;
         var add = new _dotadd.ADD();
         var ambset = obj['ambidecode-settings'];
-        var order = ambset.order;
-        var mat_width = Math.pow(order + 1, 2);
 
         if (carry.incomplete_results.length) {
-          add = carry.incomplete_results.shift();
-          incomplete = false;
+          add = carry.incomplete_results.pop();
+          console.log('using incomplete result from previous run');
+        } else add.setName(filename);
+
+        if (!(ambset.type == 'SN3D' || ambset.type == 'N3D')) throw new _Util.ParseError(filename, "Unexpected normalisation: " + ambset.type);
+
+        if (add.decoder.matrices.length) {
+          add.decoder.matrices[0].setNormalisation(ambset.type);
+        } else {
+          add.addMatrix(new _dotadd.Matrix(0, ambset.type, []));
         }
 
-        if (!(ambset.type == 'SN3D' || ambset.type == 'N3D')) throw new Error("Unexpected normalisation: " + ambset.type);
-        if (!add.decoder.matrices.length) add.addMatrix(new _dotadd.Matrix(0, ambset.type, []));else {
-          if (add.decoder.matrices[0].getNormalisation() && add.decoder.matrices[0].getNormalisation() != 'unknown') {
-            if (add.decoder.matrices[0].getNormalisation() != ambset.type.toLowerCase()) carry.messages.push(new _Converter.ParserMessage("Normalisation mismatch, expected ".concat(add.decoder.matrices[0].getNormalisation(), " but found ").concat(ambset.type), _Converter.ParserMessageLevels.err));
-          } else {
-            add.decoder.matrices[0].setNormalisation(ambset.type.toLowerCase());
-          }
-        }
-
-        for (var i in ambset.speaker) {
-          if (!(ambset.speaker[i].position['@_type'] === 'aed')) throw new Error('Unsupported coordinate type');
-          var coords = ambset.speaker[i].position['#text'].split(' ');
-          add.addOutput(new _dotadd.OutputChannel("speaker_".concat(i), 'spk', {
+        add.decoder.output.channels = ambset.speaker.map(function (spk, i) {
+          var coords = spk.position['#text'].split(' ');
+          return new _dotadd.OutputChannel("ambidecode_out_".concat(i), 'spk', {
             coords: new _dotadd.AEDCoord(coords[0], coords[1], coords[2])
-          }));
-          var mix_arr = new Array(ambset.speaker.length).fill(0);
-          mix_arr[Number.parseInt(i)] = ambset.speaker[i].gain;
-          add.decoder.output.matrix.push(mix_arr);
-        }
+          });
+        });
+        add.refitOutputMatrix();
+        add.createDefaultMetadata();
 
-        console.log(JSON.stringify(add, null, 4));
-        if (incomplete) carry.incomplete_results.push(add);else carry.results.push(add);
+        if (add.valid()) {
+          carry.results.push(add);
+        } else {
+          console.log('stashing incomplete result ' + filename);
+          carry.incomplete_results.push(add);
+        }
+      }
+    }, {
+      key: "fromADD",
+      value: function fromADD(add) {
+        return "";
       }
     }]);
 

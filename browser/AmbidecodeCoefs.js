@@ -1,16 +1,16 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "dotadd.js"], factory);
+    define(["exports", "./ADCFormat", "dotadd.js", "./Util"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("dotadd.js"));
+    factory(exports, require("./ADCFormat"), require("dotadd.js"), require("./Util"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.dotadd);
+    factory(mod.exports, global.ADCFormat, global.dotadd, global.Util);
     global.AmbidecodeCoefs = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _dotadd) {
+})(this, function (_exports, _ADCFormat, _dotadd, _Util) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
@@ -44,6 +44,11 @@
     }
 
     _createClass(AmbidecodeCoefs, null, [{
+      key: "shortName",
+      value: function shortName() {
+        return "ambidecode";
+      }
+    }, {
       key: "getName",
       value: function getName() {
         return "Ambidecode XML Configuration Files";
@@ -66,24 +71,33 @@
     }, {
       key: "parse",
       value: function parse(obj, filename, carry, opts) {
-        var incomplete = true;
         var add = new _dotadd.ADD();
         var ambc = obj['ambidecode-coefs'];
 
         if (carry.incomplete_results.length) {
-          add = carry.incomplete_results.shift();
-          incomplete = false;
-        }
+          add = carry.incomplete_results.pop();
+          console.log('using incomplete result from previous run');
+        } else add.setName(filename);
 
-        if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN")) throw new Error("Unsupported channel ordering in " + filename);
+        if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN")) throw new _Util.ParseError(filename, "Unsupported channel ordering");
         if (!add.decoder.matrices.length) add.addMatrix(new _dotadd.Matrix(0, 'unknown', []));else add.decoder.matrices[0].matrix = [];
         add.decoder.matrices[0].matrix = ambc.speaker.map(function (spk) {
           return spk.coef.map(function (cf) {
             return cf['#text'];
           });
         });
-        if (incomplete) carry.incomplete_results.push(add);else carry.results.push(add);
-        console.log(JSON.stringify(add, null, 4));
+        add.createDefaultMetadata();
+        add.refitOutputChannels();
+        add.refitOutputMatrix();
+        if (add.valid()) carry.results.push(add);else {
+          console.log('stashing incomplete result: ' + filename);
+          carry.incomplete_results.push(add);
+        }
+      }
+    }, {
+      key: "fromADD",
+      value: function fromADD(add) {
+        return "";
       }
     }]);
 

@@ -9,6 +9,8 @@ var _ADCFormat = require("./ADCFormat");
 
 var _dotadd = require("dotadd.js");
 
+var _Util = require("./Util");
+
 var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
   var c = arguments.length,
       r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
@@ -18,6 +20,10 @@ var __decorate = void 0 && (void 0).__decorate || function (decorators, target, 
 };
 
 let AmbidecodeCoefs = class AmbidecodeCoefs {
+  static shortName() {
+    return "ambidecode";
+  }
+
   static getName() {
     return "Ambidecode XML Configuration Files";
   }
@@ -35,20 +41,28 @@ let AmbidecodeCoefs = class AmbidecodeCoefs {
   }
 
   static parse(obj, filename, carry, opts) {
-    let incomplete = true;
     let add = new _dotadd.ADD();
     let ambc = obj['ambidecode-coefs'];
 
     if (carry.incomplete_results.length) {
-      add = carry.incomplete_results.shift();
-      incomplete = false;
-    }
+      add = carry.incomplete_results.pop();
+      console.log('using incomplete result from previous run');
+    } else add.setName(filename);
 
-    if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN")) throw new Error("Unsupported channel ordering in " + filename);
+    if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN")) throw new _Util.ParseError(filename, "Unsupported channel ordering");
     if (!add.decoder.matrices.length) add.addMatrix(new _dotadd.Matrix(0, 'unknown', []));else add.decoder.matrices[0].matrix = [];
     add.decoder.matrices[0].matrix = ambc.speaker.map(spk => spk.coef.map(cf => cf['#text']));
-    if (incomplete) carry.incomplete_results.push(add);else carry.results.push(add);
-    console.log(JSON.stringify(add, null, 4));
+    add.createDefaultMetadata();
+    add.refitOutputChannels();
+    add.refitOutputMatrix();
+    if (add.valid()) carry.results.push(add);else {
+      console.log('stashing incomplete result: ' + filename);
+      carry.incomplete_results.push(add);
+    }
+  }
+
+  static fromADD(add) {
+    return "";
   }
 
 };

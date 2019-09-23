@@ -23,11 +23,13 @@
   "homepage": "https://github.com/smp-3d/dotadd.toolset#readme",
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
+    "@types/papaparse": "^5.0.1",
     "chalk": "^2.4.2",
     "columnify": "^1.5.4",
     "core-js": "^2.6.9",
-    "dotadd.js": "github:smp-3d/dotadd.js",
-    "fast-xml-parser": "^3.12.20"
+    "dotadd.js": "^0.1.2",
+    "fast-xml-parser": "^3.12.20",
+    "papaparse": "^5.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",

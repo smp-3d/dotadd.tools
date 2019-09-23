@@ -1,16 +1,16 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat"], factory);
+    define(["exports", "./ADCFormat", "dotadd.js"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"));
+    factory(exports, require("./ADCFormat"), require("dotadd.js"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat);
+    factory(mod.exports, global.ADCFormat, global.dotadd);
     global.IEMFormat = mod.exports;
   }
-})(this, function (_exports, _ADCFormat) {
+})(this, function (_exports, _ADCFormat, _dotadd) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
@@ -44,9 +44,14 @@
     }
 
     _createClass(IEMFormat, null, [{
+      key: "shortName",
+      value: function shortName() {
+        return "iem";
+      }
+    }, {
       key: "getName",
       value: function getName() {
-        return "Ambidecode XML Configuration Files";
+        return "IEM AllRad Decoder Configuration Files";
       }
     }, {
       key: "getDescription",
@@ -61,12 +66,30 @@
     }, {
       key: "test",
       value: function test(obj) {
-        return false;
+        return obj.hasOwnProperty('Name') && obj.hasOwnProperty("Description") && obj.hasOwnProperty("Decoder") && obj.Decoder.hasOwnProperty("Weights");
       }
     }, {
       key: "parse",
       value: function parse(obj, filename, carry) {
-        throw new Error("Method not implemented.");
+        var add = new _dotadd.ADD({
+          name: obj.Name,
+          description: obj.Description,
+          author: "IEM Graz"
+        });
+        var date_str = obj.Description.split(".")[obj.Description.split(".").length - 1].trim();
+        var ampm = date_str.slice(-2);
+        var date = new Date(date_str.slice(0, -2));
+        date.setHours(date.getHours() + (ampm == 'pm' ? 12 : 0));
+        add.setDate(date);
+        var norm = obj.Decoder.ExpectedInputNormalization;
+        add.addMatrix(new _dotadd.Matrix(0, norm, obj.Decoder.Matrix));
+        add.repair();
+        if (add.valid()) carry.results.push(add);else carry.incomplete_results.push(add);
+      }
+    }, {
+      key: "fromADD",
+      value: function fromADD(add) {
+        return "";
       }
     }]);
 

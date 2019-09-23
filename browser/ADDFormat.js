@@ -44,6 +44,11 @@
     }
 
     _createClass(ADDFormat, null, [{
+      key: "shortName",
+      value: function shortName() {
+        return "add";
+      }
+    }, {
       key: "getName",
       value: function getName() {
         return "Ambisonic Decoder Description";
@@ -61,13 +66,18 @@
     }, {
       key: "test",
       value: function test(obj) {
-        return obj.hasOwnProperty("name") && obj.hasOwnProperty("revision") && obj.hasOwnProperty("decoder") && obj.decoder.hasOwnProperty("filter") && obj.decoder.hasOwnProperty("matrices") && obj.decoder.hasOwnProperty("output");
+        return obj.hasOwnProperty("name") && obj.hasOwnProperty("decoder") && obj.hasOwnProperty("revision");
       }
     }, {
       key: "parse",
       value: function parse(obj, filename, carry, opts) {
         var add = new _dotadd.ADD(obj);
-        carry.results.push(add);
+        if (add.valid()) carry.results.push(add);else carry.incomplete_results.push(add);
+      }
+    }, {
+      key: "fromADD",
+      value: function fromADD(add) {
+        return add.export().serialize();
       }
     }]);
 

@@ -1,7 +1,9 @@
 import { ParseResults, ConverterOptions } from './Converter';
+import { ADD } from 'dotadd.js';
 export declare enum ContainerType {
     XML = 0,
-    JSON = 1
+    JSON = 1,
+    CSV = 2
 }
 export declare function _static_implements<T>(): <U extends T>(constructor: U) => void;
 interface ADCFormatBase {
@@ -11,6 +13,7 @@ interface ADCFormatBase {
  */
 export interface ADCFormat {
     new (): ADCFormatBase;
+    shortName(): string;
     /**
      * @returns {string} the name of the format
      */
@@ -20,7 +23,7 @@ export interface ADCFormat {
      */
     getDescription(): string;
     /**
-     *
+     * @returns {ContainerType} the container type for this format
      */
     container_type(): ContainerType;
     /**
@@ -36,5 +39,6 @@ export interface ADCFormat {
      * @param options converter options
      */
     parse(obj: Object, filename: string, carry: ParseResults, options: ConverterOptions): void;
+    fromADD(add: ADD): string;
 }
 export {};

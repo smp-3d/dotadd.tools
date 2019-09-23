@@ -11,6 +11,7 @@ exports.ContainerType = ContainerType;
 (function (ContainerType) {
   ContainerType[ContainerType["XML"] = 0] = "XML";
   ContainerType[ContainerType["JSON"] = 1] = "JSON";
+  ContainerType[ContainerType["CSV"] = 2] = "CSV";
 })(ContainerType || (exports.ContainerType = ContainerType = {}));
 /* class decorator */
 

@@ -18,6 +18,10 @@ var __decorate = void 0 && (void 0).__decorate || function (decorators, target, 
 };
 
 let ADDFormat = class ADDFormat {
+  static shortName() {
+    return "add";
+  }
+
   static getName() {
     return "Ambisonic Decoder Description";
   }
@@ -31,12 +35,16 @@ let ADDFormat = class ADDFormat {
   }
 
   static test(obj) {
-    return obj.hasOwnProperty("name") && obj.hasOwnProperty("revision") && obj.hasOwnProperty("decoder") && obj.decoder.hasOwnProperty("filter") && obj.decoder.hasOwnProperty("matrices") && obj.decoder.hasOwnProperty("output");
+    return obj.hasOwnProperty("name") && obj.hasOwnProperty("decoder") && obj.hasOwnProperty("revision");
   }
 
   static parse(obj, filename, carry, opts) {
     let add = new _dotadd.ADD(obj);
-    carry.results.push(add);
+    if (add.valid()) carry.results.push(add);else carry.incomplete_results.push(add);
+  }
+
+  static fromADD(add) {
+    return add.export().serialize();
   }
 
 };

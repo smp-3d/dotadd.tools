@@ -1,16 +1,16 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "./ADDFormat", "fast-xml-parser"], factory);
+    define(["exports", "./ADCFormat", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "./ADDFormat", "./CSVFormat", "./Logger", "fast-xml-parser", "papaparse"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("./ADDFormat"), require("fast-xml-parser"));
+    factory(exports, require("./ADCFormat"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("./ADDFormat"), require("./CSVFormat"), require("./Logger"), require("fast-xml-parser"), require("papaparse"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.ADDFormat, global.fastXmlParser);
+    factory(mod.exports, global.ADCFormat, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.ADDFormat, global.CSVFormat, global.Logger, global.fastXmlParser, global.papaparse);
     global.Converter = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _ADDFormat, _fastXmlParser) {
+})(this, function (_exports, _ADCFormat, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _ADDFormat, _CSVFormat, _Logger, _fastXmlParser, Papa) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
@@ -21,6 +21,10 @@
   _AmbidecodeSettings = _interopRequireDefault(_AmbidecodeSettings);
   _IEMFormat = _interopRequireDefault(_IEMFormat);
   _ADDFormat = _interopRequireDefault(_ADDFormat);
+  _CSVFormat = _interopRequireDefault(_CSVFormat);
+  Papa = _interopRequireWildcard(Papa);
+
+  function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -32,7 +36,20 @@
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-  var formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default];
+  function containerTypeToString(ty) {
+    switch (ty) {
+      case _ADCFormat.ContainerType.CSV:
+        return "csv";
+
+      case _ADCFormat.ContainerType.JSON:
+        return "json";
+
+      case _ADCFormat.ContainerType.XML:
+        return "xml";
+    }
+  }
+
+  var formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default, _CSVFormat.default];
   var ParserMessageLevels;
   _exports.ParserMessageLevels = ParserMessageLevels;
 
@@ -57,6 +74,7 @@
     this.results = [];
     this.incomplete_results = [];
     this.messages = [];
+    this.output_files = [];
   };
 
   _exports.ParseResults = ParseResults;
@@ -170,9 +188,15 @@
           var file = _step.value;
           var ftype = file.filename.slice((file.filename.lastIndexOf(".") - 1 >>> 0) + 2);
 
+          _Logger.Logger.log("Processing file: " + file.filename);
+
+          _Logger.Logger.log("Filetype:        " + ftype);
+
           if (!(ftype === 'xml' || ftype === 'json' || ftype === 'add')) {
             if (file.data.charAt(0) === '<') ftype = 'xml';else if (file.data.charAt(0) === '{' || file.data.charAt(0) === '[') ftype = 'json';
           }
+
+          file.filename = file.filename.replace(/^.*[\\\/]/, '').split('.').slice(0, -1).join('.');
 
           switch (ftype) {
             case 'json':
@@ -187,6 +211,11 @@
 
             case 'add':
               this._do_parse_add(file, results, options);
+
+              break;
+
+            case 'csv':
+              this._do_parse_csv(file, results, options);
 
               break;
           }
@@ -206,10 +235,117 @@
         }
       }
 
+      _Logger.Logger.log("Applying command line options");
+
+      this._do_apply_options(results, options);
+
+      this._do_convert(results, options);
+
       return results;
     },
-    convert_binary: function convert_binary(filename, data, options) {},
-    list_formats: function list_formats() {},
+    _do_convert: function _do_convert(carry, opts) {
+      var ofopt = opts.use('format');
+      var output = opts.use('output');
+      var fileext = "",
+          format;
+      if (output) fileext = output.slice((output.lastIndexOf(".") - 1 >>> 0) + 2);
+      if (ofopt) format = ofopt;else if (fileext.length) format = fileext;else format = 'add';
+      var converter = formats.find(function (frm) {
+        return frm.shortName() == format;
+      });
+
+      if (converter) {
+        _Logger.Logger.log("Using '" + converter.getName() + "' exporter");
+
+        carry.results.forEach(function (res) {
+          var data = converter.fromADD(res);
+
+          _Logger.Logger.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString(converter.container_type()));
+
+          carry.output_files.push({
+            name: res.name,
+            format: format,
+            container: containerTypeToString(converter.container_type()),
+            data: data
+          });
+        });
+      } else throw new Error("Exporter '" + format + "' not found");
+    },
+    _do_apply_options: function _do_apply_options(carry, opts) {
+      var _this = this;
+
+      var mopts = {
+        description: opts.use('description'),
+        name: opts.use('name'),
+        author: opts.use('author'),
+        version: opts.use('version'),
+        norm: opts.use('norm'),
+        renormalize: opts.use('reNorm')
+      };
+      carry.results.forEach(function (res) {
+        return _this._do_apply_options_impl(res, mopts);
+      });
+      carry.incomplete_results.forEach(function (res) {
+        return _this._do_apply_options_impl(res, mopts);
+      });
+
+      while (carry.incomplete_results.length) {
+        var add = carry.incomplete_results.shift();
+
+        if (add) {
+          _Logger.Logger.log("reevaluating ADD '" + add.name + "'");
+
+          if (add.valid()) {
+            _Logger.Logger.log("is valid now, appending to valid results");
+
+            carry.results.push(add);
+          }
+        }
+      }
+    },
+    _do_apply_options_impl: function _do_apply_options_impl(add, opts) {
+      if (opts.author && typeof opts.author == 'string') {
+        _Logger.Logger.log("setting author: " + opts.author);
+
+        add.setAuthor(opts.author);
+      }
+
+      if (opts.name && typeof opts.name == 'string') {
+        _Logger.Logger.log("setting name: " + opts.name);
+
+        add.setName(opts.name);
+      }
+
+      if (opts.description && typeof opts.description == 'string') {
+        _Logger.Logger.log("setting description: " + opts.description);
+
+        add.setDescription(opts.description);
+      }
+
+      if (opts.hasOwnProperty('version') && typeof opts.version == 'number') {
+        _Logger.Logger.log("setting version: " + opts.version);
+
+        add.setVersion(Number.parseInt(opts.version));
+      }
+
+      if (opts.hasOwnProperty('norm') && typeof opts.norm == 'string') {
+        _Logger.Logger.log("setting normalisation: " + opts.norm);
+
+        add.decoder.matrices.forEach(function (dec) {
+          return dec.setNormalisation(opts.norm);
+        });
+      }
+
+      if (opts.renormalize && typeof opts.renormalize == 'string') {
+        _Logger.Logger.log("renormalizing matrices to " + opts.renormalize);
+
+        if (opts.renormalize.toLowerCase() == 'sn3d' || opts.renormalize.toLowerCase() == 'n3d') {
+          add.decoder.matrices.forEach(function (mat) {
+            return mat.renormalizeTo(opts.renormalize);
+          });
+        }
+      }
+    },
     _do_parse_json: function _do_parse_json(file, carry, opts) {
       this._do_parse_native(file, carry, opts, JSON.parse(file.data), _ADCFormat.ContainerType.JSON);
     },
@@ -219,24 +355,27 @@
       }), _ADCFormat.ContainerType.XML);
     },
     _do_parse_add: function _do_parse_add(file, carry, opts) {
+      _Logger.Logger.log("Loading .add file '" + file.filename + "'");
+
       _ADDFormat.default.parse(JSON.parse(file.data), file.filename, carry, opts);
+    },
+    _do_parse_csv: function _do_parse_csv(file, carry, opts) {
+      _Logger.Logger.log("Parsing CSV file '" + file.filename + "'");
+
+      _CSVFormat.default.parse(Papa.parse(file.data), file.filename, carry, opts);
     },
     _do_parse_native: function _do_parse_native(file, carry, opts, obj, container_type) {
       var parsers_to_try = [];
-      var output_file = opts.use('output');
-      if (output_file) console.log('output file: ' + output_file);
-      console.log();
-      console.log("Converting: " + file.filename);
 
       for (var _i = 0, _formats = formats; _i < _formats.length; _i++) {
         var format = _formats[_i];
         if (format.container_type() === container_type && format.test(obj)) parsers_to_try.push(format);
       }
 
-      console.log('Matched the following parsers: ');
-      parsers_to_try.forEach(function (p) {
-        return console.log(p.name);
-      });
+      _Logger.Logger.log("Parsing '" + file.filename + "' with '" + parsers_to_try.map(function (p) {
+        return p.getName() + "' parser";
+      }));
+
       parsers_to_try.forEach(function (parser) {
         return parser.parse(obj, file.filename, carry, opts);
       });

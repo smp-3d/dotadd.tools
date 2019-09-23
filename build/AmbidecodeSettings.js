@@ -5,9 +5,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { ContainerType, _static_implements } from "./ADCFormat";
-import { ParserMessage, ParserMessageLevels } from './Converter';
 import { ADD, Matrix, OutputChannel, AEDCoord } from 'dotadd.js';
+import { ParseError } from './Util';
 let AmbidecodeSettings = class AmbidecodeSettings {
+    static shortName() {
+        return "ambidecode_settings";
+    }
     static getName() {
         return "Ambidecode XML Settings Files";
     }
@@ -21,43 +24,40 @@ let AmbidecodeSettings = class AmbidecodeSettings {
         return obj.hasOwnProperty("ambidecode-settings");
     }
     static parse(obj, filename, carry, opts) {
-        let incomplete = true;
         let add = new ADD();
         let ambset = obj['ambidecode-settings'];
-        let order = ambset.order;
-        let mat_width = Math.pow(order + 1, 2);
         if (carry.incomplete_results.length) {
-            add = carry.incomplete_results.shift();
-            incomplete = false;
+            add = carry.incomplete_results.pop();
+            console.log('using incomplete result from previous run');
         }
-        if (!(ambset.type == 'SN3D' || ambset.type == 'N3D'))
-            throw new Error("Unexpected normalisation: " + ambset.type);
-        if (!add.decoder.matrices.length)
-            add.addMatrix(new Matrix(0, ambset.type, []));
-        else {
-            if (add.decoder.matrices[0].getNormalisation() && add.decoder.matrices[0].getNormalisation() != 'unknown') {
-                if (add.decoder.matrices[0].getNormalisation() != ambset.type.toLowerCase())
-                    carry.messages.push(new ParserMessage(`Normalisation mismatch, expected ${add.decoder.matrices[0].getNormalisation()} but found ${ambset.type}`, ParserMessageLevels.err));
-            }
-            else {
-                add.decoder.matrices[0].setNormalisation(ambset.type.toLowerCase());
-            }
-        }
-        for (let i in ambset.speaker) {
-            if (!(ambset.speaker[i].position['@_type'] === 'aed'))
-                throw new Error('Unsupported coordinate type');
-            let coords = ambset.speaker[i].position['#text'].split(' ');
-            add.addOutput(new OutputChannel(`speaker_${i}`, 'spk', { coords: new AEDCoord(coords[0], coords[1], coords[2])
-            }));
-            let mix_arr = new Array(ambset.speaker.length).fill(0);
-            mix_arr[Number.parseInt(i)] = ambset.speaker[i].gain;
-            add.decoder.output.matrix.push(mix_arr);
-        }
-        console.log(JSON.stringify(add, null, 4));
-        if (incomplete)
-            carry.incomplete_results.push(add);
         else
+            add.setName(filename);
+        if (!(ambset.type == 'SN3D' || ambset.type == 'N3D'))
+            throw new ParseError(filename, "Unexpected normalisation: " + ambset.type);
+        if (add.decoder.matrices.length) {
+            add.decoder.matrices[0].setNormalisation(ambset.type);
+        }
+        else {
+            add.addMatrix(new Matrix(0, ambset.type, []));
+        }
+        add.decoder.output.channels = ambset.speaker.map((spk, i) => {
+            let coords = spk.position['#text'].split(' ');
+            return new OutputChannel(`ambidecode_out_${i}`, 'spk', {
+                coords: new AEDCoord(coords[0], coords[1], coords[2])
+            });
+        });
+        add.refitOutputMatrix();
+        add.createDefaultMetadata();
+        if (add.valid()) {
             carry.results.push(add);
+        }
+        else {
+            console.log('stashing incomplete result ' + filename);
+            carry.incomplete_results.push(add);
+        }
+    }
+    static fromADD(add) {
+        return "";
     }
 };
 AmbidecodeSettings = __decorate([
