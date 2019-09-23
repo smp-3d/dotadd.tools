@@ -171,6 +171,10 @@ export const Converter = {
                     console.log("is valid now, appending to valid results");
                     carry.results.push(add);
                 }
+                else {
+                    console.log("still invalid");
+                    carry.incomplete_results.push(add);
+                }
             }
         }
     },

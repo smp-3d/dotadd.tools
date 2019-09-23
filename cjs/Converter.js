@@ -237,6 +237,10 @@ const Converter = {
           _Logger.Logger.log("is valid now, appending to valid results");
 
           carry.results.push(add);
+        } else {
+          _Logger.Logger.log("still invalid");
+
+          carry.incomplete_results.push(add);
         }
       }
     }
