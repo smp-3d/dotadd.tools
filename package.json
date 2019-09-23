@@ -28,6 +28,7 @@
     "@types/papaparse": "^5.0.1",
     "chalk": "^2.4.2",
     "columnify": "^1.5.4",
+    "commander": "^3.0.1",
     "core-js": "^2.6.9",
     "dotadd.js": "^0.1.2",
     "fast-xml-parser": "^3.12.20",
