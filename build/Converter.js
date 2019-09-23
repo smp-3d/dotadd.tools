@@ -163,6 +163,7 @@ export const Converter = {
         };
         carry.results.forEach(res => this._do_apply_options_impl(res, mopts));
         carry.incomplete_results.forEach(res => this._do_apply_options_impl(res, mopts));
+        let restash = [];
         while (carry.incomplete_results.length) {
             let add = carry.incomplete_results.shift();
             if (add) {
@@ -171,12 +172,11 @@ export const Converter = {
                     console.log("is valid now, appending to valid results");
                     carry.results.push(add);
                 }
-                else {
+                else
                     console.log("still invalid");
-                    carry.incomplete_results.push(add);
-                }
             }
         }
+        carry.incomplete_results.push(...restash);
     },
     _do_apply_options_impl(add, opts) {
         if (opts.author && typeof opts.author == 'string') {

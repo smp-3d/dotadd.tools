@@ -226,6 +226,7 @@ const Converter = {
     };
     carry.results.forEach(res => this._do_apply_options_impl(res, mopts));
     carry.incomplete_results.forEach(res => this._do_apply_options_impl(res, mopts));
+    let restash = [];
 
     while (carry.incomplete_results.length) {
       let add = carry.incomplete_results.shift();
@@ -237,13 +238,11 @@ const Converter = {
           _Logger.Logger.log("is valid now, appending to valid results");
 
           carry.results.push(add);
-        } else {
-          _Logger.Logger.log("still invalid");
-
-          carry.incomplete_results.push(add);
-        }
+        } else _Logger.Logger.log("still invalid");
       }
     }
+
+    carry.incomplete_results.push(...restash);
   },
 
   _do_apply_options_impl(add, opts) {

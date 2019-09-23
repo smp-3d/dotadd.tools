@@ -272,7 +272,8 @@
       } else throw new Error("Exporter '" + format + "' not found");
     },
     _do_apply_options: function _do_apply_options(carry, opts) {
-      var _this = this;
+      var _this = this,
+          _carry$incomplete_res;
 
       var mopts = {
         description: opts.use('description'),
@@ -288,6 +289,7 @@
       carry.incomplete_results.forEach(function (res) {
         return _this._do_apply_options_impl(res, mopts);
       });
+      var restash = [];
 
       while (carry.incomplete_results.length) {
         var add = carry.incomplete_results.shift();
@@ -299,13 +301,11 @@
             _Logger.Logger.log("is valid now, appending to valid results");
 
             carry.results.push(add);
-          } else {
-            _Logger.Logger.log("still invalid");
-
-            carry.incomplete_results.push(add);
-          }
+          } else _Logger.Logger.log("still invalid");
         }
       }
+
+      (_carry$incomplete_res = carry.incomplete_results).push.apply(_carry$incomplete_res, restash);
     },
     _do_apply_options_impl: function _do_apply_options_impl(add, opts) {
       if (opts.author && typeof opts.author == 'string') {
