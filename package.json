@@ -2,7 +2,9 @@
   "name": "dotadd.toolset",
   "version": "0.0.1",
   "description": "",
-  "main": "build/index.js",
+  "main": "cjs/Converter.js",
+  "module": "build/Converter.js",
+  "browser": "browser/Converter.js",
   "scripts": {
     "build": "tsc && npm run build-browser && npm run build-cjs",
     "build-browser": "cross-env BABEL_ENV=browser babel ./build --out-dir ./browser --copy-files",

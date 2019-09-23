@@ -196,18 +196,15 @@ export const Converter = {
         else
             format = 'add';
 
-
         let converter = formats.find(frm => frm.shortName() == format);
 
         if(converter){
-
 
             console.log("Using '" + converter.getName() + "' exporter");
 
             carry.results.forEach(res => {
 
                 let data = (<ADCFormat> converter).fromADD(res);
-
 
                 console.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString((<ADCFormat> converter).container_type()));
 
@@ -219,9 +216,7 @@ export const Converter = {
                 });
 
             });
-
         } else throw new Error("Exporter '" + format + "' not found");
-
     },
 
     _do_apply_options(carry: ParseResults, opts: ConverterOptions){
