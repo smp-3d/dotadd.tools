@@ -48,18 +48,16 @@ export default class AmbidecodeSettings {
             throw new ParseError(filename, "Unexpected normalisation: " + ambset.type);
 
         if(add.decoder.matrices.length){
-            add.decoder.matrices[0].setNormalisation(ambset.type);
+            add.decoder.matrices[0].setNormalization(ambset.type);
         } else {
-            add.addMatrix(new Matrix(0, ambset.type, []));
+            add.addMatrix(new Matrix(ambset.type, []));
         }
 
         add.decoder.output.channels = ambset.speaker.map((spk: any, i: number) => {
 
             let coords = spk.position['#text'].split(' ');
 
-            return new OutputChannel(`ambidecode_out_${i}`, 'spk', {
-                coords: new AEDCoord(coords[0], coords[1], coords[2])
-            });
+            return new OutputChannel(`ambidecode_out_${i}`, 'spk', new AEDCoord(coords[0], coords[1], coords[2]));
         });
 
         add.refitOutputMatrix();

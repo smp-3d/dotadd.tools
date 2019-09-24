@@ -35,7 +35,7 @@ let AmbidecodeCoefs = class AmbidecodeCoefs {
         if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN"))
             throw new ParseError(filename, "Unsupported channel ordering");
         if (!add.decoder.matrices.length)
-            add.addMatrix(new Matrix(0, 'unknown', []));
+            add.addMatrix(new Matrix('unknown', []));
         else
             add.decoder.matrices[0].matrix = [];
         add.decoder.matrices[0].matrix = ambc.speaker.map((spk) => spk.coef.map((cf) => cf['#text']));

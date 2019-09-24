@@ -297,7 +297,7 @@ const Converter = {
     if (opts.hasOwnProperty('norm') && typeof opts.norm == 'string') {
       _Logger.Logger.log("setting normalisation: " + opts.norm);
 
-      add.decoder.matrices.forEach(dec => dec.setNormalisation(opts.norm));
+      add.decoder.matrices.forEach(dec => dec.setNormalization(opts.norm));
     }
 
     if (opts.renormalize && typeof opts.renormalize == 'string') {

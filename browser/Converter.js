@@ -358,7 +358,7 @@
         _Logger.Logger.log("setting normalisation: " + opts.norm);
 
         add.decoder.matrices.forEach(function (dec) {
-          return dec.setNormalisation(opts.norm);
+          return dec.setNormalization(opts.norm);
         });
       }
 

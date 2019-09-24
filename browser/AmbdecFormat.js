@@ -160,12 +160,12 @@
         add.setDescription("Parsed from ambdec configuration file '" + filename + "'");
 
         if (ambdec.hfmtx.length && ambdec.lfmtx.length) {
-          add.addFilter(_dotadd.Filter.makeLowpass(ambdec.xover));
-          add.addFilter(_dotadd.Filter.makeHighpass(ambdec.xover));
-          add.addMatrix(new _dotadd.Matrix(0, ambdec.normalisation, ambdec.lfmtx));
-          add.addMatrix(new _dotadd.Matrix(1, ambdec.normalisation, ambdec.hfmtx));
+          add.addFilter(_dotadd.Filter.makeLowpass("lfmatrix", 0, ambdec.xover));
+          add.addFilter(_dotadd.Filter.makeHighpass("hfmatrix", 0, ambdec.xover));
+          add.addMatrix(new _dotadd.Matrix(ambdec.normalisation, ambdec.lfmtx));
+          add.addMatrix(new _dotadd.Matrix(ambdec.normalisation, ambdec.hfmtx));
         } else if (ambdec.mtx) {
-          add.addMatrix(new _dotadd.Matrix(0, ambdec.normalisation, ambdec.mtx));
+          add.addMatrix(new _dotadd.Matrix(ambdec.normalisation, ambdec.mtx));
         }
 
         var acnmask = Number.parseInt("0x" + ambdec.chmask).toString(2).split('').map(function (s) {
@@ -181,15 +181,13 @@
           });
         });
         ambdec.spks.forEach(function (spk) {
-          add.addOutput(new _dotadd.OutputChannel(spk.name, 'spk', {
-            coords: spk.coord
-          }));
+          add.addOutput(new _dotadd.OutputChannel(spk.name, 'spk', spk.coord));
         });
 
         for (var i = 0; i < add.numOutputs(); ++i) {
-          add.decoder.output.matrix.push(new Array(add.totalMatrixOutputs()).fill(0));
-          add.decoder.output.matrix[i][i] = 1;
-          if (add.decoder.filter.length) add.decoder.output.matrix[i][i + add.numOutputs()] = 1;
+          add.decoder.output.summing_matrix.push(new Array(add.totalMatrixOutputs()).fill(0));
+          add.decoder.output.summing_matrix[i][i] = 1;
+          if (add.decoder.filters.length) add.decoder.output.summing_matrix[i][i + add.numOutputs()] = 1;
         }
 
         add.createDefaultMetadata();
@@ -198,7 +196,19 @@
     }, {
       key: "fromADD",
       value: function fromADD(add) {
-        return "";
+        var out = {
+          str: "# created with dotaddtool " + new Date(Date.now()).toISOString() + "\n\n"
+        };
+        ambdecAppendValue(out, "description", add.name + "/" + add.description);
+        ambdecAppendNewlines(out, 1);
+        ambdecAppendValue(out, "version", "" + add.version);
+        ambdecAppendNewlines(out, 1);
+        ambdecAppendValue(out, 'dec/chan_mask', "" + ambdecChannelMaskForOrder(add.maxAmbisonicOrder()));
+        ambdecAppendValue(out, 'dec/freq_bands', add.decoder.filters.length ? "2" : "1");
+        ambdecAppendValue(out, 'dec/speakers', "" + add.decoder.output.channels.length);
+        ambdecWriteMatrix(out, add.decoder.matrices[0].matrix, 'lf');
+        console.log();
+        return out.str;
       }
     }]);
 
@@ -285,5 +295,48 @@
         name: el_name
       });
     }
+  }
+
+  function ambdecAppendNewlines(out, lines) {
+    for (var i = 0; i < lines; ++i) {
+      out.str = out.str + "\n";
+    }
+  }
+
+  function ambdecAppendLine(out, line) {
+    out.str = out.str + line + "\n";
+  }
+
+  function ambdecAppendValue(out, name, value) {
+    out.str = out.str + '/' + name + (value ? " \t\t" + value + "\n" : "\n");
+  }
+
+  function ambdecWriteMatrix(out, matrix, type) {
+    ambdecAppendNewlines(out, 3);
+    var mat_begin = "";
+
+    switch (type) {
+      case "lf":
+        mat_begin = "hfmatrix/{";
+        break;
+
+      case "hf":
+        mat_begin = "lfmatrix/{";
+        break;
+
+      case "r":
+        mat_begin = "matrix/{";
+        break;
+    }
+
+    ambdecAppendValue(out, mat_begin);
+    matrix.forEach(function (ch) {
+      ambdecAppendLine(out, "add_row " + ch.join("  "));
+    });
+    ambdecAppendValue(out, "}");
+  }
+
+  function ambdecChannelMaskForOrder(order) {
+    return Number.parseInt(new Array(_dotadd.ACN.maxChannels(order)).fill(1).join(""), 2).toString(16);
   }
 });

@@ -1,16 +1,16 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "dotadd.js"], factory);
+    define(["exports", "./ADCFormat", "./Converter", "dotadd.js", "./Util"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("dotadd.js"));
+    factory(exports, require("./ADCFormat"), require("./Converter"), require("dotadd.js"), require("./Util"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.dotadd);
+    factory(mod.exports, global.ADCFormat, global.Converter, global.dotadd, global.Util);
     global.IEMFormat = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _dotadd) {
+})(this, function (_exports, _ADCFormat, _Converter, _dotadd, _Util) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
@@ -76,31 +76,40 @@
           description: obj.Description,
           author: "IEM Graz"
         });
+        if (!obj.LoudspeakerLayout) throw new _Util.ParseError(filename, "No Loudspeaker Layout found.");
+        if (!obj.Decoder) throw new _Util.ParseError(filename, "No Decoder found in File");
         var date_str = obj.Description.split(".")[obj.Description.split(".").length - 1].trim();
         var ampm = date_str.slice(-2);
         var date = new Date(date_str.slice(0, -2));
         date.setHours(date.getHours() + (ampm == 'pm' ? 12 : 0));
-        add.setDate(date);
-        add.addMatrix(new _dotadd.Matrix(0, obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix));
+
+        try {
+          add.setDate(date);
+        } catch (e) {
+          add.setDate(new Date(Date.now()).toISOString());
+          carry.messages.push(new _Converter.ParserMessage("Could not read Date value from description string", _Converter.ParserMessageLevels.warn));
+        }
+
+        var mat = new _dotadd.Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
+        if (obj.Decoder.WeightsAlreadyApplied) mat.setWeighting(obj.Deoder.Weights);
+        add.addMatrix(mat);
         var num_outputs = obj.LoudspeakerLayout.Loudspeakers.reduce(function (val, spk) {
           return val + +!spk.IsImaginary;
         }, 0);
         var num_imags = obj.LoudspeakerLayout.Loudspeakers.reduce(function (val, spk) {
           return val + spk.IsImaginary;
         }, 0);
-        add.decoder.output.matrix = [];
+        add.decoder.output.summing_matrix = [];
 
         for (var i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i) {
-          add.decoder.output.matrix.push(new Array(num_outputs).fill(0));
+          add.decoder.output.summing_matrix.push(new Array(num_outputs).fill(0));
         }
 
         obj.LoudspeakerLayout.Loudspeakers.forEach(function (speaker, index) {
-          return add.addOutput(new _dotadd.OutputChannel("".concat(obj.LoudspeakerLayout.Name, " ").concat(index).concat(speaker.IsImaginary ? " [IMAG]" : ""), 'spk', {
-            coords: new _dotadd.AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius)
-          }));
+          return add.addOutput(new _dotadd.OutputChannel("".concat(obj.LoudspeakerLayout.Name, " ").concat(index).concat(speaker.IsImaginary ? " [IMAG]" : ""), 'spk', new _dotadd.AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius)));
         });
         obj.Decoder.Routing.forEach(function (ch, index) {
-          add.decoder.output.matrix[ch - 1][index] = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
+          add.decoder.output.summing_matrix[ch - 1][index] = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
         });
         if (add.valid()) carry.results.push(add);else carry.incomplete_results.push(add);
       }
@@ -113,7 +122,7 @@
           Decoder: {
             Name: add.name,
             Description: add.description,
-            ExpectedInputNormalization: add.decoder.matrices[0].getNormalisation(),
+            ExpectedInputNormalization: add.decoder.matrices[0].getNormalization(),
             Weights: "maxrE",
             WeightsAlreadyApplied: false,
             Matrix: [],
@@ -150,13 +159,13 @@
   _exports.default = _default;
 
   function isImag(add, index) {
-    return add.decoder.output.matrix[index].reduce(function (val, arr) {
+    return add.decoder.output.summing_matrix[index].reduce(function (val, arr) {
       return val + arr;
     }, 0) == 0.;
   }
 
   function gainForChannel(add, index) {
-    return add.decoder.output.matrix[index].reduce(function (val, arr) {
+    return add.decoder.output.summing_matrix[index].reduce(function (val, arr) {
       return val + arr;
     }, 0);
   }

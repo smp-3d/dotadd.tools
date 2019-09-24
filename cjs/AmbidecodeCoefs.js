@@ -50,7 +50,7 @@ let AmbidecodeCoefs = class AmbidecodeCoefs {
     } else add.setName(filename);
 
     if (!ambc.speaker[0].coef[0].hasOwnProperty("@_ACN")) throw new _Util.ParseError(filename, "Unsupported channel ordering");
-    if (!add.decoder.matrices.length) add.addMatrix(new _dotadd.Matrix(0, 'unknown', []));else add.decoder.matrices[0].matrix = [];
+    if (!add.decoder.matrices.length) add.addMatrix(new _dotadd.Matrix('unknown', []));else add.decoder.matrices[0].matrix = [];
     add.decoder.matrices[0].matrix = ambc.speaker.map(spk => spk.coef.map(cf => cf['#text']));
     add.createDefaultMetadata();
     add.refitOutputChannels();

@@ -37,7 +37,7 @@ export default class CSVFormat {
         
         add.createDefaultMetadata();
 
-        add.addMatrix(new Matrix(0, 'unknown', obj.data.map((arr: any[]) => arr.map((num: any) => Number.parseFloat(num)))));
+        add.addMatrix(new Matrix('unknown', obj.data.map((arr: any[]) => arr.map((num: any) => Number.parseFloat(num)))));
 
         add.createDefaultOutputs();
 
@@ -61,5 +61,4 @@ export default class CSVFormat {
 
         return Papa.unparse(output_arr);
     }
-
 }

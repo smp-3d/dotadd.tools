@@ -4,7 +4,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-import { ADD, Matrix, AEDCoord, Filter, OutputChannel } from 'dotadd.js';
+import { ADD, Matrix, AEDCoord, Filter, OutputChannel, ACN } from 'dotadd.js';
 import { _static_implements, ContainerType } from './ADCFormat';
 import { ParseError } from './Util';
 class Ambdec {
@@ -102,13 +102,13 @@ let AmbdecFormat = class AmbdecFormat {
             throw new ParseError(filename, "Unexpected normalisation: " + ambdec.normalisation);
         add.setDescription("Parsed from ambdec configuration file '" + filename + "'");
         if (ambdec.hfmtx.length && ambdec.lfmtx.length) {
-            add.addFilter(Filter.makeLowpass(ambdec.xover));
-            add.addFilter(Filter.makeHighpass(ambdec.xover));
-            add.addMatrix(new Matrix(0, ambdec.normalisation, ambdec.lfmtx));
-            add.addMatrix(new Matrix(1, ambdec.normalisation, ambdec.hfmtx));
+            add.addFilter(Filter.makeLowpass("lfmatrix", 0, ambdec.xover));
+            add.addFilter(Filter.makeHighpass("hfmatrix", 0, ambdec.xover));
+            add.addMatrix(new Matrix(ambdec.normalisation, ambdec.lfmtx));
+            add.addMatrix(new Matrix(ambdec.normalisation, ambdec.hfmtx));
         }
         else if (ambdec.mtx) {
-            add.addMatrix(new Matrix(0, ambdec.normalisation, ambdec.mtx));
+            add.addMatrix(new Matrix(ambdec.normalisation, ambdec.mtx));
         }
         let acnmask = Number.parseInt("0x" + ambdec.chmask)
             .toString(2).split('').map(s => Number.parseInt(s));
@@ -122,13 +122,13 @@ let AmbdecFormat = class AmbdecFormat {
             });
         });
         ambdec.spks.forEach(spk => {
-            add.addOutput(new OutputChannel(spk.name, 'spk', { coords: spk.coord }));
+            add.addOutput(new OutputChannel(spk.name, 'spk', spk.coord));
         });
         for (let i = 0; i < add.numOutputs(); ++i) {
-            add.decoder.output.matrix.push(new Array(add.totalMatrixOutputs()).fill(0));
-            add.decoder.output.matrix[i][i] = 1;
-            if (add.decoder.filter.length)
-                add.decoder.output.matrix[i][i + add.numOutputs()] = 1;
+            add.decoder.output.summing_matrix.push(new Array(add.totalMatrixOutputs()).fill(0));
+            add.decoder.output.summing_matrix[i][i] = 1;
+            if (add.decoder.filters.length)
+                add.decoder.output.summing_matrix[i][i + add.numOutputs()] = 1;
         }
         add.createDefaultMetadata();
         if (add.valid())
@@ -137,7 +137,17 @@ let AmbdecFormat = class AmbdecFormat {
             carry.incomplete_results.push(add);
     }
     static fromADD(add) {
-        return "";
+        let out = { str: "# created with dotaddtool " + new Date(Date.now()).toISOString() + "\n\n" };
+        ambdecAppendValue(out, "description", add.name + "/" + add.description);
+        ambdecAppendNewlines(out, 1);
+        ambdecAppendValue(out, "version", "" + add.version);
+        ambdecAppendNewlines(out, 1);
+        ambdecAppendValue(out, 'dec/chan_mask', "" + ambdecChannelMaskForOrder(add.maxAmbisonicOrder()));
+        ambdecAppendValue(out, 'dec/freq_bands', ((add.decoder.filters.length) ? "2" : "1"));
+        ambdecAppendValue(out, 'dec/speakers', "" + add.decoder.output.channels.length);
+        ambdecWriteMatrix(out, add.decoder.matrices[0].matrix, 'lf');
+        console.log();
+        return out.str;
     }
 };
 AmbdecFormat = __decorate([
@@ -191,4 +201,37 @@ function doParseSpeaker(line, ambdec) {
             name: el_name
         });
     }
+}
+function ambdecAppendNewlines(out, lines) {
+    for (let i = 0; i < lines; ++i)
+        out.str = out.str + "\n";
+}
+function ambdecAppendLine(out, line) {
+    out.str = out.str + line + "\n";
+}
+function ambdecAppendValue(out, name, value) {
+    out.str = out.str + '/' + name + ((value) ? " \t\t" + value + "\n" : "\n");
+}
+function ambdecWriteMatrix(out, matrix, type) {
+    ambdecAppendNewlines(out, 3);
+    let mat_begin = "";
+    switch (type) {
+        case "lf":
+            mat_begin = "hfmatrix/{";
+            break;
+        case "hf":
+            mat_begin = "lfmatrix/{";
+            break;
+        case "r":
+            mat_begin = "matrix/{";
+            break;
+    }
+    ambdecAppendValue(out, mat_begin);
+    matrix.forEach(ch => {
+        ambdecAppendLine(out, "add_row " + ch.join("  "));
+    });
+    ambdecAppendValue(out, "}");
+}
+function ambdecChannelMaskForOrder(order) {
+    return Number.parseInt(new Array(ACN.maxChannels(order)).fill(1).join(""), 2).toString(16);
 }

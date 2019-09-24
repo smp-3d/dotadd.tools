@@ -5,7 +5,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { _static_implements, ContainerType } from './ADCFormat';
+import { ParserMessage, ParserMessageLevels } from './Converter';
 import { ADD, Matrix, OutputChannel, AEDCoord } from 'dotadd.js';
+import { ParseError } from './Util';
 let IEMFormat = class IEMFormat {
     static shortName() {
         return "iem";
@@ -31,22 +33,35 @@ let IEMFormat = class IEMFormat {
             description: obj.Description,
             author: "IEM Graz",
         });
+        if (!obj.LoudspeakerLayout)
+            throw new ParseError(filename, "No Loudspeaker Layout found.");
+        if (!obj.Decoder)
+            throw new ParseError(filename, "No Decoder found in File");
         let date_str = obj.Description.split(".")[obj.Description.split(".").length - 1].trim();
         let ampm = date_str.slice(-2);
         let date = new Date(date_str.slice(0, -2));
         date.setHours(date.getHours() + ((ampm == 'pm') ? 12 : 0));
-        add.setDate(date);
-        add.addMatrix(new Matrix(0, obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix));
+        try {
+            add.setDate(date);
+        }
+        catch (e) {
+            add.setDate(new Date(Date.now()).toISOString());
+            carry.messages.push(new ParserMessage("Could not read Date value from description string", ParserMessageLevels.warn));
+        }
+        let mat = new Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
+        if (obj.Decoder.WeightsAlreadyApplied)
+            mat.setWeighting(obj.Deoder.Weights);
+        add.addMatrix(mat);
         let num_outputs = obj.LoudspeakerLayout.Loudspeakers
             .reduce((val, spk) => val + +!spk.IsImaginary, 0);
         let num_imags = obj.LoudspeakerLayout.Loudspeakers
             .reduce((val, spk) => val + spk.IsImaginary, 0);
-        add.decoder.output.matrix = [];
+        add.decoder.output.summing_matrix = [];
         for (let i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i)
-            add.decoder.output.matrix.push(new Array(num_outputs).fill(0));
-        obj.LoudspeakerLayout.Loudspeakers.forEach((speaker, index) => add.addOutput(new OutputChannel(`${obj.LoudspeakerLayout.Name} ${index}${(speaker.IsImaginary) ? " [IMAG]" : ""}`, 'spk', { coords: new AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius) })));
+            add.decoder.output.summing_matrix.push(new Array(num_outputs).fill(0));
+        obj.LoudspeakerLayout.Loudspeakers.forEach((speaker, index) => add.addOutput(new OutputChannel(`${obj.LoudspeakerLayout.Name} ${index}${(speaker.IsImaginary) ? " [IMAG]" : ""}`, 'spk', new AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius))));
         obj.Decoder.Routing.forEach((ch, index) => {
-            add.decoder.output.matrix[ch - 1][index]
+            add.decoder.output.summing_matrix[ch - 1][index]
                 = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
         });
         if (add.valid())
@@ -61,7 +76,7 @@ let IEMFormat = class IEMFormat {
             Decoder: {
                 Name: add.name,
                 Description: add.description,
-                ExpectedInputNormalization: add.decoder.matrices[0].getNormalisation(),
+                ExpectedInputNormalization: add.decoder.matrices[0].getNormalization(),
                 Weights: "maxrE",
                 WeightsAlreadyApplied: false,
                 Matrix: [],
@@ -98,10 +113,10 @@ IEMFormat = __decorate([
 ], IEMFormat);
 export default IEMFormat;
 function isImag(add, index) {
-    return add.decoder.output.matrix[index]
+    return add.decoder.output.summing_matrix[index]
         .reduce((val, arr) => val + arr, 0) == 0.;
 }
 function gainForChannel(add, index) {
-    return add.decoder.output.matrix[index]
+    return add.decoder.output.summing_matrix[index]
         .reduce((val, arr) => val + arr, 0);
 }

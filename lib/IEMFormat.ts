@@ -1,6 +1,7 @@
 import { _static_implements, ADCFormat, ContainerType } from './ADCFormat'
-import { ParseResults, ConverterOptions } from './Converter'
+import { ParseResults, ConverterOptions, ParserMessage, ParserMessageLevels } from './Converter'
 import { ADD, Matrix, OutputChannel, AEDCoord } from 'dotadd.js'
+import { ParseError } from './Util';
 
 
 @_static_implements<ADCFormat>()
@@ -37,6 +38,12 @@ export default class IEMFormat {
             author: "IEM Graz",
         });
 
+        if(!obj.LoudspeakerLayout)
+            throw new ParseError(filename, "No Loudspeaker Layout found.");
+
+        if(!obj.Decoder)
+            throw new ParseError(filename, "No Decoder found in File");
+
         let date_str = obj.Description.split(".")[obj.Description.split(".").length - 1].trim();
 
         let ampm = date_str.slice(-2);
@@ -45,9 +52,19 @@ export default class IEMFormat {
 
         date.setHours(date.getHours() + ((ampm == 'pm')? 12 : 0));
 
-        add.setDate(date);
+        try {
+            add.setDate(date);
+        } catch(e) {
+            add.setDate(new Date(Date.now()).toISOString());
+            carry.messages.push(new ParserMessage("Could not read Date value from description string", ParserMessageLevels.warn));
+        }
 
-        add.addMatrix(new Matrix(0, obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix));
+        let mat = new Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
+
+        if(obj.Decoder.WeightsAlreadyApplied)
+            mat.setWeighting(obj.Deoder.Weights);
+
+        add.addMatrix(mat);
 
         let num_outputs = obj.LoudspeakerLayout.Loudspeakers
             .reduce((val: number, spk: any) => val + +!spk.IsImaginary, 0);
@@ -55,35 +72,35 @@ export default class IEMFormat {
         let num_imags = obj.LoudspeakerLayout.Loudspeakers
             .reduce((val: number, spk: any) => val + spk.IsImaginary, 0);
 
-        add.decoder.output.matrix = [];
+        add.decoder.output.summing_matrix = [];
 
         for(let i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i)
-            add.decoder.output.matrix.push(new Array(num_outputs).fill(0));
+            add.decoder.output.summing_matrix.push(new Array(num_outputs).fill(0));
 
         obj.LoudspeakerLayout.Loudspeakers.forEach((speaker: any, index: number) => 
             add.addOutput(
                 new OutputChannel(
                     `${obj.LoudspeakerLayout.Name} ${index}${(speaker.IsImaginary)?" [IMAG]":""}`,
                      'spk', 
-                    {coords: new AEDCoord(
+                    new AEDCoord(
                         speaker.Azimuth,
                         speaker.Elevation,
                         speaker.Radius
-                    )})));
+                    ))));
 
     
         obj.Decoder.Routing.forEach((ch: number, index: number) => {
-            add.decoder.output.matrix[ch - 1][index] 
+            add.decoder.output.summing_matrix[ch - 1][index] 
                 = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
         });
-        
+
         if(add.valid())
             carry.results.push(add);
         else
             carry.incomplete_results.push(add);
     }
 
-    static fromADD(add: ADD, opts: ConverterOptions): string{
+    static fromADD(add: ADD, opts: ConverterOptions): string {
 
         let iem = {
             Name: add.name,
@@ -91,7 +108,7 @@ export default class IEMFormat {
             Decoder: {
                 Name: add.name,
                 Description: add.description,
-                ExpectedInputNormalization: add.decoder.matrices[0].getNormalisation(),
+                ExpectedInputNormalization: add.decoder.matrices[0].getNormalization(),
                 Weights: "maxrE",
                 WeightsAlreadyApplied: false,
                 Matrix: <number[][]> [],
@@ -133,11 +150,11 @@ export default class IEMFormat {
 }
 
 function isImag(add: ADD, index: number): boolean {
-    return add.decoder.output.matrix[index]
+    return add.decoder.output.summing_matrix[index]
         .reduce((val: number, arr: number) => val + arr, 0) == 0.;
 }
 
 function gainForChannel(add: ADD, index: number): number {
-    return add.decoder.output.matrix[index]
+    return add.decoder.output.summing_matrix[index]
         .reduce((val: number, arr: number) => val + arr, 0);
 }       

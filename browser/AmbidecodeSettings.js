@@ -82,16 +82,14 @@
         if (!(ambset.type == 'SN3D' || ambset.type == 'N3D')) throw new _Util.ParseError(filename, "Unexpected normalisation: " + ambset.type);
 
         if (add.decoder.matrices.length) {
-          add.decoder.matrices[0].setNormalisation(ambset.type);
+          add.decoder.matrices[0].setNormalization(ambset.type);
         } else {
-          add.addMatrix(new _dotadd.Matrix(0, ambset.type, []));
+          add.addMatrix(new _dotadd.Matrix(ambset.type, []));
         }
 
         add.decoder.output.channels = ambset.speaker.map(function (spk, i) {
           var coords = spk.position['#text'].split(' ');
-          return new _dotadd.OutputChannel("ambidecode_out_".concat(i), 'spk', {
-            coords: new _dotadd.AEDCoord(coords[0], coords[1], coords[2])
-          });
+          return new _dotadd.OutputChannel("ambidecode_out_".concat(i), 'spk', new _dotadd.AEDCoord(coords[0], coords[1], coords[2]));
         });
         add.refitOutputMatrix();
         add.createDefaultMetadata();

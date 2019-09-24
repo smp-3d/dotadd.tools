@@ -42,7 +42,7 @@ export default class AmbidecodeCoefs {
             throw new ParseError(filename, "Unsupported channel ordering");
 
         if(!add.decoder.matrices.length)
-            add.addMatrix(new Matrix(0, 'unknown', []));
+            add.addMatrix(new Matrix('unknown', []));
         else
             add.decoder.matrices[0].matrix = [];
 

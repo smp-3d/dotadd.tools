@@ -1,4 +1,4 @@
-import { ADD, Matrix, AEDCoord, Filter, OutputChannel } from 'dotadd.js';
+import { ADD, Matrix, AEDCoord, Filter, OutputChannel, ACN } from 'dotadd.js';
 import { ParseResults, ConverterOptions, ConvertableTextFile } from './Converter'
 import { ADCFormat, _static_implements, ContainerType } from './ADCFormat'
 import { stringify } from 'querystring';
@@ -130,14 +130,14 @@ export default class AmbdecFormat {
 
         if(ambdec.hfmtx.length && ambdec.lfmtx.length){
             
-            add.addFilter(Filter.makeLowpass(ambdec.xover));
-            add.addFilter(Filter.makeHighpass(ambdec.xover));
+            add.addFilter(Filter.makeLowpass("lfmatrix", 0, ambdec.xover));
+            add.addFilter(Filter.makeHighpass("hfmatrix", 0, ambdec.xover));
 
-            add.addMatrix(new Matrix(0, ambdec.normalisation, ambdec.lfmtx));
-            add.addMatrix(new Matrix(1, ambdec.normalisation, ambdec.hfmtx));
+            add.addMatrix(new Matrix(ambdec.normalisation, ambdec.lfmtx));
+            add.addMatrix(new Matrix(ambdec.normalisation, ambdec.hfmtx));
 
         } else if(ambdec.mtx) {
-            add.addMatrix(new Matrix(0, ambdec.normalisation, ambdec.mtx));
+            add.addMatrix(new Matrix(ambdec.normalisation, ambdec.mtx));
         }
 
         let acnmask = Number.parseInt("0x" + ambdec.chmask)
@@ -159,19 +159,19 @@ export default class AmbdecFormat {
         });
 
         ambdec.spks.forEach(spk => {
-            add.addOutput(new OutputChannel(spk.name, 'spk', { coords: spk.coord }));
+            add.addOutput(new OutputChannel(spk.name, 'spk', spk.coord));
         });
 
         for(let i = 0; i < add.numOutputs(); ++i){
 
-            add.decoder.output.matrix.push(
+            add.decoder.output.summing_matrix.push(
                 new Array(add.totalMatrixOutputs()).fill(0)
             )
 
-            add.decoder.output.matrix[i][i] = 1;
+            add.decoder.output.summing_matrix[i][i] = 1;
 
-            if(add.decoder.filter.length)
-                add.decoder.output.matrix[i][i + add.numOutputs()] = 1;
+            if(add.decoder.filters.length)
+                add.decoder.output.summing_matrix[i][i + add.numOutputs()] = 1;
         }
 
         add.createDefaultMetadata();
@@ -183,7 +183,27 @@ export default class AmbdecFormat {
     }
 
     static fromADD(add: ADD): string {   
-        return "";
+
+        let out = { str: "# created with dotaddtool " + new Date(Date.now()).toISOString() + "\n\n" };
+
+        ambdecAppendValue(out, "description", add.name + "/" + add.description);
+
+        ambdecAppendNewlines(out, 1);
+
+        ambdecAppendValue(out, "version", ""+add.version);
+
+        ambdecAppendNewlines(out, 1);
+
+        ambdecAppendValue(out, 'dec/chan_mask', ""+ambdecChannelMaskForOrder(add.maxAmbisonicOrder()))
+        ambdecAppendValue(out, 'dec/freq_bands', ((add.decoder.filters.length)?"2":"1"));
+        ambdecAppendValue(out, 'dec/speakers', ""+add.decoder.output.channels.length);
+
+
+        ambdecWriteMatrix(out, add.decoder.matrices[0].matrix, 'lf');
+
+        console.log();
+
+        return out.str;
     }
 
 }
@@ -254,4 +274,48 @@ function doParseSpeaker(line: string, ambdec: Ambdec){
             name: <string> el_name
         });
     }
+}
+
+function ambdecAppendNewlines(out: { str: string }, lines: number){
+    for(let i = 0; i < lines; ++i)
+        out.str = out.str + "\n";
+}
+
+function ambdecAppendLine(out: { str: string }, line: string){
+    out.str = out.str + line + "\n";
+}
+
+function ambdecAppendValue(out: { str: string }, name: string, value?: string){
+    out.str = out.str + '/' + name + ((value) ? " \t\t" + value + "\n" : "\n");
+}
+
+function ambdecWriteMatrix(out: { str: string }, matrix: number[][], type: string){
+
+    ambdecAppendNewlines(out, 3);
+
+    let mat_begin = "";
+
+    switch(type){
+        case "lf":
+            mat_begin = "hfmatrix/{";
+            break;
+        case "hf":
+            mat_begin = "lfmatrix/{";
+            break;
+        case "r":
+            mat_begin = "matrix/{"
+            break;
+    }
+
+    ambdecAppendValue(out, mat_begin);
+
+    matrix.forEach(ch => {
+        ambdecAppendLine(out, "add_row " + ch.join("  "));
+    });
+
+    ambdecAppendValue(out, "}");
+}
+
+function ambdecChannelMaskForOrder(order: number){
+    return Number.parseInt(new Array(ACN.maxChannels(order)).fill(1).join(""), 2).toString(16);
 }

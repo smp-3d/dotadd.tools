@@ -31,7 +31,7 @@ let CSVFormat = class CSVFormat {
             name: "Ambisonic Decoder Description parsed from CSV File"
         });
         add.createDefaultMetadata();
-        add.addMatrix(new Matrix(0, 'unknown', obj.data.map((arr) => arr.map((num) => Number.parseFloat(num)))));
+        add.addMatrix(new Matrix('unknown', obj.data.map((arr) => arr.map((num) => Number.parseFloat(num)))));
         add.createDefaultOutputs();
         carry.incomplete_results.push(add);
     }

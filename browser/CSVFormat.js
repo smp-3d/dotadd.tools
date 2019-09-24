@@ -87,7 +87,7 @@
           name: "Ambisonic Decoder Description parsed from CSV File"
         });
         add.createDefaultMetadata();
-        add.addMatrix(new _dotadd.Matrix(0, 'unknown', obj.data.map(function (arr) {
+        add.addMatrix(new _dotadd.Matrix('unknown', obj.data.map(function (arr) {
           return arr.map(function (num) {
             return Number.parseFloat(num);
           });

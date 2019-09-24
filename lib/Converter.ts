@@ -299,7 +299,7 @@ export const Converter = {
 
         if(opts.hasOwnProperty('norm') && typeof opts.norm == 'string'){
             console.log("setting normalisation: " + opts.norm)
-            add.decoder.matrices.forEach((dec: Matrix) => dec.setNormalisation(opts.norm));
+            add.decoder.matrices.forEach((dec: Matrix) => dec.setNormalization(opts.norm));
         }
 
         if(opts.renormalize && typeof opts.renormalize == 'string'){
