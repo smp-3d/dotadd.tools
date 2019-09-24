@@ -55,7 +55,7 @@ let IEMFormat = class IEMFormat {
         else
             carry.incomplete_results.push(add);
     }
-    static fromADD(add) {
+    static fromADD(add, opts) {
         let iem = {
             Name: add.name,
             Description: add.description,
@@ -87,7 +87,11 @@ let IEMFormat = class IEMFormat {
             iem.LoudspeakerLayout.Loudspeakers.push(spk);
         });
         iem.Decoder.Matrix = add.decoder.matrices[0].matrix;
-        return JSON.stringify(iem, null, 2);
+        let prettify = opts.use('prettify');
+        if (prettify)
+            return JSON.stringify(iem, null, 4);
+        else
+            return JSON.stringify(iem);
     }
 };
 IEMFormat = __decorate([

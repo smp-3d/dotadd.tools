@@ -39,6 +39,6 @@ export interface ADCFormat {
      * @param options converter options
      */
     parse(obj: Object, filename: string, carry: ParseResults, options: ConverterOptions): void;
-    fromADD(add: ADD): string;
+    fromADD(add: ADD, opts: ConverterOptions): string;
 }
 export {};

@@ -1,5 +1,5 @@
 import { _static_implements, ADCFormat, ContainerType } from './ADCFormat'
-import { ParseResults } from './Converter'
+import { ParseResults, ConverterOptions } from './Converter'
 import { ADD, Matrix, OutputChannel, AEDCoord } from 'dotadd.js'
 
 
@@ -85,7 +85,7 @@ export default class IEMFormat {
             carry.incomplete_results.push(add);
     }
 
-    static fromADD(add: ADD): string{
+    static fromADD(add: ADD, opts: ConverterOptions): string{
 
         let iem = {
             Name: add.name,
@@ -124,7 +124,12 @@ export default class IEMFormat {
 
         iem.Decoder.Matrix = add.decoder.matrices[0].matrix;
 
-        return JSON.stringify(iem, null, 2);
+        let prettify = opts.use('prettify');
+
+        if(prettify)
+            return JSON.stringify(iem, null, 4);
+        else
+            return JSON.stringify(iem);
     }
 
 }

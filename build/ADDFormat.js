@@ -31,8 +31,12 @@ let ADDFormat = class ADDFormat {
         else
             carry.incomplete_results.push(add);
     }
-    static fromADD(add) {
-        return add.export().serialize();
+    static fromADD(add, opts) {
+        let prettify = opts.use('prettify');
+        if (prettify)
+            return JSON.stringify(add.export(), null, 4);
+        else
+            return add.export().serialize();
     }
 };
 ADDFormat = __decorate([

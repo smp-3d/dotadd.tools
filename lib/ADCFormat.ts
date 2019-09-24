@@ -4,7 +4,9 @@ import { ADD } from 'dotadd.js'
 export enum ContainerType {
     XML,
     JSON,
-    CSV
+    CSV,
+    AMBDEC,
+    CONFIG
 }
 
 /* class decorator */
@@ -54,6 +56,6 @@ export interface ADCFormat {
      */
     parse(obj: Object, filename: string, carry: ParseResults, options: ConverterOptions): void;
 
-    fromADD(add: ADD): string;
+    fromADD(add: ADD, opts: ConverterOptions): string;
 
 };

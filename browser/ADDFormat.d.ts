@@ -8,5 +8,5 @@ export default class ADDFormat {
     static container_type(): ContainerType;
     static test(obj: any): Boolean;
     static parse(obj: object, filename: string, carry: ParseResults, opts: ConverterOptions): void;
-    static fromADD(add: ADD): string;
+    static fromADD(add: ADD, opts: ConverterOptions): string;
 }

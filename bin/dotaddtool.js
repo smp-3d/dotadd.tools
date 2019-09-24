@@ -17,10 +17,11 @@ program.command('convert <files...>')
         .option('-v, --version <version>', 'output file version')
         .option('-a, --author <author>', 'output file author')
         .option('-f, --format <format>', 'output format (default: add)')
+        .option('-p, --prettify', 'prettify json based output formats')
         .option('--nojoin', 'do not join any files together')
         .option('--norm <normalisation>', 'specify normalisation')
         .option('--re-norm <normalisation>', 'change normalisation')
-        .option('-go --guess-outputs')
+        .option('-go, --guess-outputs')
         .action(require('./convert'));
 
 program.command('info <files...>')

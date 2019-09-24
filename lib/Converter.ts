@@ -1,9 +1,4 @@
 import { ADCFormat, ContainerType } from './ADCFormat';
-import AmbidecodeCoefs from './AmbidecodeCoefs';
-import AmbidecodeSettings from './AmbidecodeSettings';
-import IEMFormat from './IEMFormat';
-import ADDFormat from './ADDFormat';
-import CSVFormat from './CSVFormat';
 import { Logger as console } from './Logger';
 
 import { ADD, Matrix } from 'dotadd.js';
@@ -12,7 +7,15 @@ import { parse as parse_xml } from 'fast-xml-parser';
 import * as Papa from 'papaparse';
 
 import { ParseError } from './Util';
+
+
+import AmbidecodeCoefs from './AmbidecodeCoefs';
+import AmbidecodeSettings from './AmbidecodeSettings';
+import IEMFormat from './IEMFormat';
+import ADDFormat from './ADDFormat';
+import CSVFormat from './CSVFormat';
 import AmbdecFormat from './AmbdecFormat';
+import AmbixConfigFormat from './AmbixConfigFormat';
 
 function containerTypeToString(ty: ContainerType): string {
     switch(ty){
@@ -30,7 +33,9 @@ let formats = [
     AmbidecodeCoefs,
     AmbidecodeSettings,
     IEMFormat,
-    CSVFormat
+    CSVFormat,
+    AmbdecFormat,
+    AmbixConfigFormat
 ] as ADCFormat[];
 
 export enum ParserMessageLevels {
@@ -172,6 +177,7 @@ export const Converter = {
                     this._do_parse_ambdec(file, results, options);
                     break;
                 case 'config':
+                    this._do_parse_ambix_config(file, results, options);
                     break;
             }
 
@@ -210,7 +216,7 @@ export const Converter = {
 
             carry.results.forEach(res => {
 
-                let data = (<ADCFormat> converter).fromADD(res);
+                let data = (<ADCFormat> converter).fromADD(res, opts);
 
                 console.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString((<ADCFormat> converter).container_type()));
 
@@ -330,7 +336,8 @@ export const Converter = {
     },
 
     _do_parse_ambix_config(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions){
-
+        console.log("Parsing AmbiX configuration file '" + file.filename + "'");
+        AmbixConfigFormat.parse(file, file.filename, carry, opts);
     },
 
     _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, 

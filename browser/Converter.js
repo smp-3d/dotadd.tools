@@ -267,7 +267,7 @@
         _Logger.Logger.log("Using '" + converter.getName() + "' exporter");
 
         carry.results.forEach(function (res) {
-          var data = converter.fromADD(res);
+          var data = converter.fromADD(res, opts);
 
           _Logger.Logger.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString(converter.container_type()));
 

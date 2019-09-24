@@ -107,7 +107,7 @@
       }
     }, {
       key: "fromADD",
-      value: function fromADD(add) {
+      value: function fromADD(add, opts) {
         var iem = {
           Name: add.name,
           Description: add.description,
@@ -138,7 +138,8 @@
           iem.LoudspeakerLayout.Loudspeakers.push(spk);
         });
         iem.Decoder.Matrix = add.decoder.matrices[0].matrix;
-        return JSON.stringify(iem, null, 2);
+        var prettify = opts.use('prettify');
+        if (prettify) return JSON.stringify(iem, null, 4);else return JSON.stringify(iem);
       }
     }]);
 

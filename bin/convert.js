@@ -25,7 +25,8 @@ module.exports = function(files, options){
          'description',
          'version',
          'guessOutputs', 
-         'reNorm');
+         'reNorm',
+         'prettify');
 
     try {
 

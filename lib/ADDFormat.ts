@@ -38,8 +38,14 @@ export default class ADDFormat {
 
     }
 
-    static fromADD(add: ADD): string {
-        return add.export().serialize();
+    static fromADD(add: ADD, opts: ConverterOptions): string {
+        
+        let prettify = opts.use('prettify');
+
+        if(prettify)
+            return JSON.stringify(add.export(), null, 4);
+        else
+            return add.export().serialize();
     }
 
 }

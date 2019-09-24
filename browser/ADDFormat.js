@@ -76,8 +76,9 @@
       }
     }, {
       key: "fromADD",
-      value: function fromADD(add) {
-        return add.export().serialize();
+      value: function fromADD(add, opts) {
+        var prettify = opts.use('prettify');
+        if (prettify) return JSON.stringify(add.export(), null, 4);else return add.export().serialize();
       }
     }]);
 

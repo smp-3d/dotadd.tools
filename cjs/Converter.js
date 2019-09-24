@@ -211,7 +211,7 @@ const Converter = {
       _Logger.Logger.log("Using '" + converter.getName() + "' exporter");
 
       carry.results.forEach(res => {
-        let data = converter.fromADD(res);
+        let data = converter.fromADD(res, opts);
 
         _Logger.Logger.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString(converter.container_type()));
 

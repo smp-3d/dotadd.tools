@@ -36,11 +36,11 @@ export default class AmbdecFormat {
     }
 
     static container_type(): ContainerType {
-        return ContainerType.CSV;
+        return ContainerType.AMBDEC;
     }
 
     static test(obj: any): boolean {
-        return true;
+        return false;
     }
 
     static parse(file: ConvertableTextFile, filename: string, carry: ParseResults, opts: ConverterOptions) {

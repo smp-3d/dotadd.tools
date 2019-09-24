@@ -145,7 +145,7 @@ export const Converter = {
         if (converter) {
             console.log("Using '" + converter.getName() + "' exporter");
             carry.results.forEach(res => {
-                let data = converter.fromADD(res);
+                let data = converter.fromADD(res, opts);
                 console.log("Producing output: '" + res.name + "', format: '" + format + "', container: " + containerTypeToString(converter.container_type()));
                 carry.output_files.push({
                     name: res.name,
