@@ -49,18 +49,67 @@ let IEMFormat = class IEMFormat {
     let date = new Date(date_str.slice(0, -2));
     date.setHours(date.getHours() + (ampm == 'pm' ? 12 : 0));
     add.setDate(date);
-    let norm = obj.Decoder.ExpectedInputNormalization;
-    add.addMatrix(new _dotadd.Matrix(0, norm, obj.Decoder.Matrix));
-    add.repair();
+    add.addMatrix(new _dotadd.Matrix(0, obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix));
+    let num_outputs = obj.LoudspeakerLayout.Loudspeakers.reduce((val, spk) => val + +!spk.IsImaginary, 0);
+    let num_imags = obj.LoudspeakerLayout.Loudspeakers.reduce((val, spk) => val + spk.IsImaginary, 0);
+    add.decoder.output.matrix = [];
+
+    for (let i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i) add.decoder.output.matrix.push(new Array(num_outputs).fill(0));
+
+    obj.LoudspeakerLayout.Loudspeakers.forEach((speaker, index) => add.addOutput(new _dotadd.OutputChannel(`${obj.LoudspeakerLayout.Name} ${index}${speaker.IsImaginary ? " [IMAG]" : ""}`, 'spk', {
+      coords: new _dotadd.AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius)
+    })));
+    obj.Decoder.Routing.forEach((ch, index) => {
+      add.decoder.output.matrix[ch - 1][index] = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
+    });
+    console.log(add.decoder.output);
     if (add.valid()) carry.results.push(add);else carry.incomplete_results.push(add);
   }
 
   static fromADD(add) {
-    return "";
+    let iem = {
+      Name: add.name,
+      Description: add.description,
+      Decoder: {
+        Name: add.name,
+        Description: add.description,
+        ExpectedInputNormalization: add.decoder.matrices[0].getNormalisation(),
+        Weights: "maxrE",
+        WeightsAlreadyApplied: false,
+        Matrix: [],
+        Routing: []
+      },
+      LoudspeakerLayout: {
+        Name: "",
+        Loudspeakers: []
+      }
+    };
+    add.decoder.output.channels.forEach((ch, i) => {
+      let spk = {
+        Azimuth: ch.coords.a || 0,
+        Elevation: ch.coords.e || 0,
+        Radius: ch.coords.d || 1,
+        IsImaginary: isImag(add, i),
+        Channel: i + 1,
+        Gain: gainForChannel(add, i)
+      };
+      if (!isImag(add, i)) iem.Decoder.Routing.push(i + 1);
+      iem.LoudspeakerLayout.Loudspeakers.push(spk);
+    });
+    iem.Decoder.Matrix = add.decoder.matrices[0].matrix;
+    return JSON.stringify(iem, null, 2);
   }
 
 };
 IEMFormat = __decorate([(0, _ADCFormat._static_implements)()], IEMFormat);
 var _default = IEMFormat;
 exports.default = _default;
+
+function isImag(add, index) {
+  return add.decoder.output.matrix[index].reduce((val, arr) => val + arr, 0) == 0.;
+}
+
+function gainForChannel(add, index) {
+  return add.decoder.output.matrix[index].reduce((val, arr) => val + arr, 0);
+}
 //# sourceMappingURL=IEMFormat.js.map
