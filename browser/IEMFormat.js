@@ -102,7 +102,6 @@
         obj.Decoder.Routing.forEach(function (ch, index) {
           add.decoder.output.matrix[ch - 1][index] = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
         });
-        console.log(add.decoder.output);
         if (add.valid()) carry.results.push(add);else carry.incomplete_results.push(add);
       }
     }, {
