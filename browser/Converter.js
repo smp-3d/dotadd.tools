@@ -1,33 +1,34 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "./ADDFormat", "./CSVFormat", "./Logger", "fast-xml-parser", "papaparse", "./AmbdecFormat"], factory);
+    define(["exports", "./ADCFormat", "./Logger", "fast-xml-parser", "papaparse", "./AmbidecodeCoefs", "./AmbidecodeSettings", "./IEMFormat", "./ADDFormat", "./CSVFormat", "./AmbdecFormat", "./AmbixConfigFormat"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("./ADDFormat"), require("./CSVFormat"), require("./Logger"), require("fast-xml-parser"), require("papaparse"), require("./AmbdecFormat"));
+    factory(exports, require("./ADCFormat"), require("./Logger"), require("fast-xml-parser"), require("papaparse"), require("./AmbidecodeCoefs"), require("./AmbidecodeSettings"), require("./IEMFormat"), require("./ADDFormat"), require("./CSVFormat"), require("./AmbdecFormat"), require("./AmbixConfigFormat"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.ADDFormat, global.CSVFormat, global.Logger, global.fastXmlParser, global.papaparse, global.AmbdecFormat);
+    factory(mod.exports, global.ADCFormat, global.Logger, global.fastXmlParser, global.papaparse, global.AmbidecodeCoefs, global.AmbidecodeSettings, global.IEMFormat, global.ADDFormat, global.CSVFormat, global.AmbdecFormat, global.AmbixConfigFormat);
     global.Converter = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _ADDFormat, _CSVFormat, _Logger, _fastXmlParser, Papa, _AmbdecFormat) {
+})(this, function (_exports, _ADCFormat, _Logger, _fastXmlParser, Papa, _AmbidecodeCoefs, _AmbidecodeSettings, _IEMFormat, _ADDFormat, _CSVFormat, _AmbdecFormat, _AmbixConfigFormat) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
     value: true
   });
   _exports.Converter = _exports.ConverterOptions = _exports.ConverterOption = _exports.ConvertableTextFile = _exports.ParseResults = _exports.ParserMessage = _exports.ParserMessageLevels = void 0;
+  Papa = _interopRequireWildcard(Papa);
   _AmbidecodeCoefs = _interopRequireDefault(_AmbidecodeCoefs);
   _AmbidecodeSettings = _interopRequireDefault(_AmbidecodeSettings);
   _IEMFormat = _interopRequireDefault(_IEMFormat);
   _ADDFormat = _interopRequireDefault(_ADDFormat);
   _CSVFormat = _interopRequireDefault(_CSVFormat);
-  Papa = _interopRequireWildcard(Papa);
   _AmbdecFormat = _interopRequireDefault(_AmbdecFormat);
-
-  function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+  _AmbixConfigFormat = _interopRequireDefault(_AmbixConfigFormat);
 
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+  function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
   function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -47,10 +48,16 @@
 
       case _ADCFormat.ContainerType.XML:
         return "xml";
+
+      case _ADCFormat.ContainerType.AMBDEC:
+        return "ambdec";
+
+      case _ADCFormat.ContainerType.CONFIG:
+        return "config";
     }
   }
 
-  var formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default, _CSVFormat.default];
+  var formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default, _CSVFormat.default, _AmbdecFormat.default, _AmbixConfigFormat.default];
   var ParserMessageLevels;
   _exports.ParserMessageLevels = ParserMessageLevels;
 
@@ -226,6 +233,8 @@
               break;
 
             case 'config':
+              this._do_parse_ambix_config(file, results, options);
+
               break;
           }
         }
@@ -386,7 +395,11 @@
 
       _AmbdecFormat.default.parse(file, file.filename, carry, opts);
     },
-    _do_parse_ambix_config: function _do_parse_ambix_config(file, carry, opts) {},
+    _do_parse_ambix_config: function _do_parse_ambix_config(file, carry, opts) {
+      _Logger.Logger.log("Parsing AmbiX configuration file '" + file.filename + "'");
+
+      _AmbixConfigFormat.default.parse(file, file.filename, carry, opts);
+    },
     _do_parse_native: function _do_parse_native(file, carry, opts, obj, container_type) {
       var parsers_to_try = [];
 

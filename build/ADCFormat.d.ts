@@ -3,7 +3,9 @@ import { ADD } from 'dotadd.js';
 export declare enum ContainerType {
     XML = 0,
     JSON = 1,
-    CSV = 2
+    CSV = 2,
+    AMBDEC = 3,
+    CONFIG = 4
 }
 export declare function _static_implements<T>(): <U extends T>(constructor: U) => void;
 interface ADCFormatBase {

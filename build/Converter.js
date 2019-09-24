@@ -1,13 +1,14 @@
 import { ContainerType } from './ADCFormat';
+import { Logger as console } from './Logger';
+import { parse as parse_xml } from 'fast-xml-parser';
+import * as Papa from 'papaparse';
 import AmbidecodeCoefs from './AmbidecodeCoefs';
 import AmbidecodeSettings from './AmbidecodeSettings';
 import IEMFormat from './IEMFormat';
 import ADDFormat from './ADDFormat';
 import CSVFormat from './CSVFormat';
-import { Logger as console } from './Logger';
-import { parse as parse_xml } from 'fast-xml-parser';
-import * as Papa from 'papaparse';
 import AmbdecFormat from './AmbdecFormat';
+import AmbixConfigFormat from './AmbixConfigFormat';
 function containerTypeToString(ty) {
     switch (ty) {
         case ContainerType.CSV:
@@ -16,6 +17,10 @@ function containerTypeToString(ty) {
             return "json";
         case ContainerType.XML:
             return "xml";
+        case ContainerType.AMBDEC:
+            return "ambdec";
+        case ContainerType.CONFIG:
+            return "config";
     }
 }
 let formats = [
@@ -23,7 +28,9 @@ let formats = [
     AmbidecodeCoefs,
     AmbidecodeSettings,
     IEMFormat,
-    CSVFormat
+    CSVFormat,
+    AmbdecFormat,
+    AmbixConfigFormat
 ];
 export var ParserMessageLevels;
 (function (ParserMessageLevels) {
@@ -121,6 +128,7 @@ export const Converter = {
                     this._do_parse_ambdec(file, results, options);
                     break;
                 case 'config':
+                    this._do_parse_ambix_config(file, results, options);
                     break;
             }
         }
@@ -234,6 +242,8 @@ export const Converter = {
         AmbdecFormat.parse(file, file.filename, carry, opts);
     },
     _do_parse_ambix_config(file, carry, opts) {
+        console.log("Parsing AmbiX configuration file '" + file.filename + "'");
+        AmbixConfigFormat.parse(file, file.filename, carry, opts);
     },
     _do_parse_native(file, carry, opts, obj, container_type) {
         let parsers_to_try = [];

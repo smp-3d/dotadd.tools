@@ -25,6 +25,10 @@ function containerTypeToString(ty: ContainerType): string {
             return "json";
         case ContainerType.XML:
             return "xml";
+        case ContainerType.AMBDEC:
+            return "ambdec";
+        case ContainerType.CONFIG:
+            return "config";
     }
 }
 

@@ -30,10 +30,10 @@ let AmbdecFormat = class AmbdecFormat {
         return "Ambdec Files";
     }
     static container_type() {
-        return ContainerType.CSV;
+        return ContainerType.AMBDEC;
     }
     static test(obj) {
-        return true;
+        return false;
     }
     static parse(file, filename, carry, opts) {
         let add = new ADD();

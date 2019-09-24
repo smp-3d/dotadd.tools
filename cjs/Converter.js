@@ -7,6 +7,12 @@ exports.Converter = exports.ConverterOptions = exports.ConverterOption = exports
 
 var _ADCFormat = require("./ADCFormat");
 
+var _Logger = require("./Logger");
+
+var _fastXmlParser = require("fast-xml-parser");
+
+var Papa = _interopRequireWildcard(require("papaparse"));
+
 var _AmbidecodeCoefs = _interopRequireDefault(require("./AmbidecodeCoefs"));
 
 var _AmbidecodeSettings = _interopRequireDefault(require("./AmbidecodeSettings"));
@@ -17,17 +23,13 @@ var _ADDFormat = _interopRequireDefault(require("./ADDFormat"));
 
 var _CSVFormat = _interopRequireDefault(require("./CSVFormat"));
 
-var _Logger = require("./Logger");
-
-var _fastXmlParser = require("fast-xml-parser");
-
-var Papa = _interopRequireWildcard(require("papaparse"));
-
 var _AmbdecFormat = _interopRequireDefault(require("./AmbdecFormat"));
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+var _AmbixConfigFormat = _interopRequireDefault(require("./AmbixConfigFormat"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function containerTypeToString(ty) {
   switch (ty) {
@@ -39,10 +41,16 @@ function containerTypeToString(ty) {
 
     case _ADCFormat.ContainerType.XML:
       return "xml";
+
+    case _ADCFormat.ContainerType.AMBDEC:
+      return "ambdec";
+
+    case _ADCFormat.ContainerType.CONFIG:
+      return "config";
   }
 }
 
-let formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default, _CSVFormat.default];
+let formats = [_ADDFormat.default, _AmbidecodeCoefs.default, _AmbidecodeSettings.default, _IEMFormat.default, _CSVFormat.default, _AmbdecFormat.default, _AmbixConfigFormat.default];
 var ParserMessageLevels;
 exports.ParserMessageLevels = ParserMessageLevels;
 
@@ -185,6 +193,8 @@ const Converter = {
           break;
 
         case 'config':
+          this._do_parse_ambix_config(file, results, options);
+
           break;
       }
     }
@@ -327,7 +337,11 @@ const Converter = {
     _AmbdecFormat.default.parse(file, file.filename, carry, opts);
   },
 
-  _do_parse_ambix_config(file, carry, opts) {},
+  _do_parse_ambix_config(file, carry, opts) {
+    _Logger.Logger.log("Parsing AmbiX configuration file '" + file.filename + "'");
+
+    _AmbixConfigFormat.default.parse(file, file.filename, carry, opts);
+  },
 
   _do_parse_native(file, carry, opts, obj, container_type) {
     let parsers_to_try = [];

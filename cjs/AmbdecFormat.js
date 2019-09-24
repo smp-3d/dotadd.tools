@@ -47,11 +47,11 @@ let AmbdecFormat = class AmbdecFormat {
   }
 
   static container_type() {
-    return _ADCFormat.ContainerType.CSV;
+    return _ADCFormat.ContainerType.AMBDEC;
   }
 
   static test(obj) {
-    return true;
+    return false;
   }
 
   static parse(file, filename, carry, opts) {

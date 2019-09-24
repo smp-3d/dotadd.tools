@@ -74,12 +74,12 @@
     }, {
       key: "container_type",
       value: function container_type() {
-        return _ADCFormat.ContainerType.CSV;
+        return _ADCFormat.ContainerType.AMBDEC;
       }
     }, {
       key: "test",
       value: function test(obj) {
-        return true;
+        return false;
       }
     }, {
       key: "parse",
