@@ -7,6 +7,7 @@ import CSVFormat from './CSVFormat';
 import { Logger as console } from './Logger';
 import { parse as parse_xml } from 'fast-xml-parser';
 import * as Papa from 'papaparse';
+import AmbdecFormat from './AmbdecFormat';
 function containerTypeToString(ty) {
     switch (ty) {
         case ContainerType.CSV:
@@ -116,6 +117,11 @@ export const Converter = {
                 case 'csv':
                     this._do_parse_csv(file, results, options);
                     break;
+                case 'ambdec':
+                    this._do_parse_ambdec(file, results, options);
+                    break;
+                case 'config':
+                    break;
             }
         }
         console.log("Applying command line options");
@@ -222,6 +228,12 @@ export const Converter = {
     _do_parse_csv(file, carry, opts) {
         console.log("Parsing CSV file '" + file.filename + "'");
         CSVFormat.parse(Papa.parse(file.data), file.filename, carry, opts);
+    },
+    _do_parse_ambdec(file, carry, opts) {
+        console.log("Parsing ambdec file '" + file.filename + "'");
+        AmbdecFormat.parse(file, file.filename, carry, opts);
+    },
+    _do_parse_ambix_config(file, carry, opts) {
     },
     _do_parse_native(file, carry, opts, obj, container_type) {
         let parsers_to_try = [];

@@ -12,6 +12,7 @@ import { parse as parse_xml } from 'fast-xml-parser';
 import * as Papa from 'papaparse';
 
 import { ParseError } from './Util';
+import AmbdecFormat from './AmbdecFormat';
 
 function containerTypeToString(ty: ContainerType): string {
     switch(ty){
@@ -167,6 +168,11 @@ export const Converter = {
                 case 'csv':
                     this._do_parse_csv(file, results, options);
                     break;
+                case 'ambdec':
+                    this._do_parse_ambdec(file, results, options);
+                    break;
+                case 'config':
+                    break;
             }
 
         }
@@ -316,6 +322,15 @@ export const Converter = {
     _do_parse_csv(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
         console.log("Parsing CSV file '" + file.filename + "'");
         CSVFormat.parse(Papa.parse(file.data), file.filename, carry, opts);
+    },
+
+    _do_parse_ambdec(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions){
+        console.log("Parsing ambdec file '" + file.filename + "'");
+        AmbdecFormat.parse(file, file.filename, carry, opts);
+    },
+
+    _do_parse_ambix_config(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions){
+
     },
 
     _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, 

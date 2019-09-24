@@ -44,6 +44,8 @@ module.exports = function(files, options){
             else
                 console.log(c.red('Error ') + `when parsing '${e.file}':  ${e.message}`);
 
+            process.exit(1);
+
         } else exit_error(e, options.parent.V);
         
     }

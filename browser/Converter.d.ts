@@ -53,5 +53,7 @@ export declare const Converter: {
     _do_parse_xml(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
     _do_parse_add(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
     _do_parse_csv(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
+    _do_parse_ambdec(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
+    _do_parse_ambix_config(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions): void;
     _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, obj: Object, container_type: ContainerType): void;
 };

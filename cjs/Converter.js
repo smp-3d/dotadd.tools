@@ -23,6 +23,8 @@ var _fastXmlParser = require("fast-xml-parser");
 
 var Papa = _interopRequireWildcard(require("papaparse"));
 
+var _AmbdecFormat = _interopRequireDefault(require("./AmbdecFormat"));
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -176,6 +178,14 @@ const Converter = {
           this._do_parse_csv(file, results, options);
 
           break;
+
+        case 'ambdec':
+          this._do_parse_ambdec(file, results, options);
+
+          break;
+
+        case 'config':
+          break;
       }
     }
 
@@ -310,6 +320,14 @@ const Converter = {
 
     _CSVFormat.default.parse(Papa.parse(file.data), file.filename, carry, opts);
   },
+
+  _do_parse_ambdec(file, carry, opts) {
+    _Logger.Logger.log("Parsing ambdec file '" + file.filename + "'");
+
+    _AmbdecFormat.default.parse(file, file.filename, carry, opts);
+  },
+
+  _do_parse_ambix_config(file, carry, opts) {},
 
   _do_parse_native(file, carry, opts, obj, container_type) {
     let parsers_to_try = [];
