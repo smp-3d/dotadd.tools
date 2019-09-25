@@ -196,18 +196,42 @@
     }, {
       key: "fromADD",
       value: function fromADD(add) {
+        ambdecRemoveImagSpeakers(add);
+        var pair = ambdecFindXoverPair(add.decoder.filters);
+        var dualband = false;
+        var xover_f = 0;
+
+        if (pair) {
+          xover_f = add.decoder.filters[pair.h].low;
+          dualband = true;
+        }
+
         var out = {
-          str: "# created with dotaddtool " + new Date(Date.now()).toISOString() + "\n\n"
+          str: "# created with dotaddtool " + new Date(Date.now()).toUTCString() + "\n\n"
         };
-        ambdecAppendValue(out, "description", add.name + "/" + add.description);
+        ambdecAppendValue(out, "description\t", add.name + "/" + add.description);
         ambdecAppendNewlines(out, 1);
-        ambdecAppendValue(out, "version", "" + add.version);
+        ambdecAppendValue(out, "version", "\t" + add.version);
         ambdecAppendNewlines(out, 1);
-        ambdecAppendValue(out, 'dec/chan_mask', "" + ambdecChannelMaskForOrder(add.maxAmbisonicOrder()));
+        ambdecAppendValue(out, 'dec/chan_mask', "\t" + adjustMatrixAndGetChannelMask(add.decoder.matrices));
         ambdecAppendValue(out, 'dec/freq_bands', add.decoder.filters.length ? "2" : "1");
-        ambdecAppendValue(out, 'dec/speakers', "" + add.decoder.output.channels.length);
-        ambdecWriteMatrix(out, add.decoder.matrices[0].matrix, 'lf');
-        console.log();
+        ambdecAppendValue(out, 'dec/speakers', "\t" + add.decoder.output.channels.length);
+        ambdecAppendValue(out, 'dec/coeff_scale', add.decoder.matrices[0].getNormalization());
+        ambdecAppendNewlines(out, 1);
+        ambdecAppendValue(out, 'out/input_scale', add.decoder.matrices[0].getNormalization());
+        ambdecAppendValue(out, 'out/nfeff_comp', 'output');
+        ambdecAppendValue(out, 'out/delay_comp', 'off'), ambdecAppendValue(out, 'out/level_comp', 'off'), ambdecAppendValue(out, 'out/xover_freq', "" + xover_f);
+        ambdecAppendValue(out, 'out/xover_ratio', '0');
+        ambdecAppendNewlines(out, 3);
+        ambdecAppendSpeakers(out, add);
+        ambdecAppendNewlines(out, 2);
+        if (!dualband) ambdecWriteMatrix(out, add.decoder.matrices[0].matrix, 'r');else {
+          if (pair) {
+            ambdecWriteMatrix(out, add.decoder.matrices[pair.l].matrix, 'lf');
+            ambdecAppendNewlines(out, 1);
+            ambdecWriteMatrix(out, add.decoder.matrices[pair.h].matrix, 'hf');
+          }
+        }
         return out.str;
       }
     }]);
@@ -308,11 +332,14 @@
   }
 
   function ambdecAppendValue(out, name, value) {
-    out.str = out.str + '/' + name + (value ? " \t\t" + value + "\n" : "\n");
+    out.str = out.str + '/' + name + (value ? " \t" + value + "\n" : "\n");
+  }
+
+  function ambdecSectionEnd(out) {
+    ambdecAppendValue(out, "}");
   }
 
   function ambdecWriteMatrix(out, matrix, type) {
-    ambdecAppendNewlines(out, 3);
     var mat_begin = "";
 
     switch (type) {
@@ -330,13 +357,116 @@
     }
 
     ambdecAppendValue(out, mat_begin);
+
+    var order = _dotadd.ACN.order(matrix[0].length);
+
+    var order_gain_line = "order_gain";
+
+    for (var i = 0; i < order; ++i) {
+      order_gain_line = order_gain_line + "\t1.0";
+    }
+
+    ambdecAppendLine(out, order_gain_line);
     matrix.forEach(function (ch) {
       ambdecAppendLine(out, "add_row " + ch.join("  "));
     });
-    ambdecAppendValue(out, "}");
+    ambdecSectionEnd(out);
+  }
+
+  function adjustMatrixAndGetChannelMask(mtx) {
+    var num_coeffs = 0;
+    var mat_idx = 0; // find the largest matrix
+
+    mtx.forEach(function (mat, idx) {
+      if (mat.numCoeffs() > num_coeffs) {
+        mat_idx = idx;
+        num_coeffs = mat.numCoeffs();
+      }
+    });
+    var map = []; // create a map of only zero values
+
+    var _loop = function _loop(i) {
+      map.push(mtx[mat_idx].matrix.reduce(function (carry, arr) {
+        return arr[i] == 0 && carry;
+      }, true));
+    };
+
+    for (var i = 0; i < num_coeffs; ++i) {
+      _loop(i);
+    }
+
+    mtx.forEach(function (mat, idx) {
+      if (idx === mat_idx) return;
+      map.forEach(function (cf, i) {
+        map[i] = map[i] && mat.matrix.reduce(function (carry, arr) {
+          return arr[i] == 0 && carry;
+        }, true);
+      });
+    });
+    mtx.forEach(function (mat, idx) {
+      mat.matrix.forEach(function (ch, i) {
+        var new_arr = [];
+        map.forEach(function (f) {
+          if (!f) new_arr.push(ch.shift());else ch.shift();
+        });
+        mat.matrix[i] = new_arr;
+      });
+    });
+    return Number.parseInt(map.map(function (b) {
+      return b ? "0" : "1";
+    }).join(""), 2).toString(16);
+  }
+
+  function ambdecAppendSpeakers(out, add) {
+    ambdecAppendValue(out, 'speakers/{');
+    add.decoder.output.channels.forEach(function (ch) {
+      out.str = out.str + "add_spkr\t".concat(ch.name, "\t").concat(ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0", "\t").concat(ch.coords ? ch.coords.a : "0", "\t").concat(ch.coords ? ch.coords.e : "0", "\n");
+    });
+    ambdecSectionEnd(out);
+  }
+
+  function ambdecFindXoverPair(filters) {
+    try {
+      filters.forEach(function (flt, idx) {
+        filters.forEach(function (flt2, idx2) {
+          if (idx === idx2) return;
+
+          if (flt.isHighpass() && flt2.isLowpass()) {
+            if (flt.low == flt2.high) throw {
+              h: idx,
+              l: idx2
+            };
+          }
+
+          if (flt.isLowpass() && flt2.isHighpass()) {
+            if (flt.high == flt2.low) throw {
+              h: idx2,
+              l: idx
+            };
+          }
+        });
+      });
+    } catch (result) {
+      return result;
+    }
   }
 
   function ambdecChannelMaskForOrder(order) {
     return Number.parseInt(new Array(_dotadd.ACN.maxChannels(order)).fill(1).join(""), 2).toString(16);
+  }
+
+  function ambdecRemoveImagSpeakers(add) {
+    var new_chs = [];
+    var new_summing_mtx = [];
+    add.decoder.output.channels.forEach(function (ch, idx) {
+      if (add.decoder.output.summing_matrix[idx].reduce(function (v, c) {
+        return c + v;
+      }, 0) != 0) {
+        new_summing_mtx.push(add.decoder.output.summing_matrix[idx]);
+        new_chs.push(add.decoder.output.channels[idx]);
+      }
+    });
+    add.decoder.output.channels = new_chs;
+    add.decoder.output.summing_matrix = new_summing_mtx;
   }
 });
