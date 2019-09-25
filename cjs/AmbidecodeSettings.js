@@ -58,7 +58,7 @@ let AmbidecodeSettings = class AmbidecodeSettings {
     }
 
     add.decoder.output.channels = ambset.speaker.map((spk, i) => {
-      let coords = spk.position['#text'].split(' ');
+      let coords = spk.position['#text'].split(' ').map(n => Number.parseFloat(n));
       return new _dotadd.OutputChannel(`ambidecode_out_${i}`, 'spk', new _dotadd.AEDCoord(coords[0], coords[1], coords[2]));
     });
     add.refitOutputMatrix();

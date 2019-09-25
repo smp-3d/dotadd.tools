@@ -41,7 +41,7 @@ let AmbidecodeSettings = class AmbidecodeSettings {
             add.addMatrix(new Matrix(ambset.type, []));
         }
         add.decoder.output.channels = ambset.speaker.map((spk, i) => {
-            let coords = spk.position['#text'].split(' ');
+            let coords = spk.position['#text'].split(' ').map((n) => Number.parseFloat(n));
             return new OutputChannel(`ambidecode_out_${i}`, 'spk', new AEDCoord(coords[0], coords[1], coords[2]));
         });
         add.refitOutputMatrix();

@@ -55,7 +55,7 @@ export default class AmbidecodeSettings {
 
         add.decoder.output.channels = ambset.speaker.map((spk: any, i: number) => {
 
-            let coords = spk.position['#text'].split(' ');
+            let coords = spk.position['#text'].split(' ').map((n: string) => Number.parseFloat(n));
 
             return new OutputChannel(`ambidecode_out_${i}`, 'spk', new AEDCoord(coords[0], coords[1], coords[2]));
         });

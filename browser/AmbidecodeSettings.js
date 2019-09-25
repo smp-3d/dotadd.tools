@@ -88,7 +88,9 @@
         }
 
         add.decoder.output.channels = ambset.speaker.map(function (spk, i) {
-          var coords = spk.position['#text'].split(' ');
+          var coords = spk.position['#text'].split(' ').map(function (n) {
+            return Number.parseFloat(n);
+          });
           return new _dotadd.OutputChannel("ambidecode_out_".concat(i), 'spk', new _dotadd.AEDCoord(coords[0], coords[1], coords[2]));
         });
         add.refitOutputMatrix();
