@@ -306,7 +306,7 @@ function ambdecAppendSpeakers(out, add) {
     ambdecAppendValue(out, 'speakers/{');
     add.decoder.output.channels.forEach(ch => {
         out.str = out.str +
-            `add_spkr\t${ch.name}\t${(ch.coords) ? (ch.coords.d) ? ch.coords.d : "1.0" : "1.0"}\t${(ch.coords) ? ch.coords.a : "0"}\t${(ch.coords) ? ch.coords.e : "0"}\n`;
+            `add_spkr\t${ch.name.split(/\s+/).join("_")}\t${(ch.coords) ? (ch.coords.d) ? ch.coords.d : "1.0" : "1.0"}\t${(ch.coords) ? ch.coords.a : "0"}\t${(ch.coords) ? ch.coords.e : "0"}\n`;
     });
     ambdecSectionEnd(out);
 }

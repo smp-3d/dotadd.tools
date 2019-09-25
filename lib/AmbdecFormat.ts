@@ -426,7 +426,7 @@ function ambdecAppendSpeakers(out: { str: string }, add: ADD){
     add.decoder.output.channels.forEach(ch => {
         out.str = out.str + 
         `add_spkr\t${
-            ch.name
+            ch.name.split(/\s+/).join("_")
         }\t${
             (ch.coords)?(ch.coords.d)? ch.coords.d : "1.0" : "1.0"
         }\t${

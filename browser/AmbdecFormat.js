@@ -420,7 +420,7 @@
   function ambdecAppendSpeakers(out, add) {
     ambdecAppendValue(out, 'speakers/{');
     add.decoder.output.channels.forEach(function (ch) {
-      out.str = out.str + "add_spkr\t".concat(ch.name, "\t").concat(ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0", "\t").concat(ch.coords ? ch.coords.a : "0", "\t").concat(ch.coords ? ch.coords.e : "0", "\n");
+      out.str = out.str + "add_spkr\t".concat(ch.name.split(/\s+/).join("_"), "\t").concat(ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0", "\t").concat(ch.coords ? ch.coords.a : "0", "\t").concat(ch.coords ? ch.coords.e : "0", "\n");
     });
     ambdecSectionEnd(out);
   }
