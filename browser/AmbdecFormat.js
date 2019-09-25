@@ -168,9 +168,10 @@
           add.addMatrix(new _dotadd.Matrix(ambdec.normalisation, ambdec.mtx));
         }
 
-        var acnmask = Number.parseInt("0x" + ambdec.chmask).toString(2).split('').map(function (s) {
+        var acnmask = [];
+        if (ambdec.chmask.length) acnmask = Number.parseInt("0x" + ambdec.chmask).toString(2).split('').map(function (s) {
           return Number.parseInt(s);
-        });
+        });else acnmask = new Array(ambdec.mtx[0].length).fill(1);
         add.decoder.matrices.forEach(function (mat) {
           mat.matrix.forEach(function (ch, i) {
             var new_ch = [];
@@ -211,7 +212,7 @@
         };
         ambdecAppendValue(out, "description\t", add.name + "/" + add.description);
         ambdecAppendNewlines(out, 1);
-        ambdecAppendValue(out, "version", "\t" + add.version);
+        ambdecAppendValue(out, "version", "\t" + (add.version ? +add.version : 0));
         ambdecAppendNewlines(out, 1);
         ambdecAppendValue(out, 'dec/chan_mask', "\t" + adjustMatrixAndGetChannelMask(add.decoder.matrices));
         ambdecAppendValue(out, 'dec/freq_bands', add.decoder.filters.length ? "2" : "1");
@@ -281,8 +282,7 @@
       return el.length;
     });
 
-    if (elems[0] == 'add_row') {
-      elems.shift();
+    if (elems.shift() == 'add_row') {
       var coefs = elems.map(function (str) {
         return Number.parseFloat(str);
       });
@@ -419,8 +419,8 @@
 
   function ambdecAppendSpeakers(out, add) {
     ambdecAppendValue(out, 'speakers/{');
-    add.decoder.output.channels.forEach(function (ch) {
-      out.str = out.str + "add_spkr\t".concat(ch.name.split(/\s+/).join("_"), "\t").concat(ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0", "\t").concat(ch.coords ? ch.coords.a : "0", "\t").concat(ch.coords ? ch.coords.e : "0", "\n");
+    add.decoder.output.channels.forEach(function (ch, i) {
+      out.str = out.str + "add_spkr\t".concat(ch.name && ch.name.length ? ch.name.split(/\s+/).join("_") : "spk" + i, "\t").concat(ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0", "\t").concat(ch.coords ? ch.coords.a : "0", "\t").concat(ch.coords ? ch.coords.e : "0", "\n");
     });
     ambdecSectionEnd(out);
   }
@@ -459,9 +459,9 @@
     var new_chs = [];
     var new_summing_mtx = [];
     add.decoder.output.channels.forEach(function (ch, idx) {
-      if (add.decoder.output.summing_matrix[idx].reduce(function (v, c) {
-        return c + v;
-      }, 0) != 0) {
+      if (!add.decoder.output.summing_matrix[idx].reduce(function (is_null, c) {
+        return is_null && c == 0;
+      }, true)) {
         new_summing_mtx.push(add.decoder.output.summing_matrix[idx]);
         new_chs.push(add.decoder.output.channels[idx]);
       }

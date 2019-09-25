@@ -80,7 +80,10 @@ export default class IEMFormat {
         obj.LoudspeakerLayout.Loudspeakers.forEach((speaker: any, index: number) => 
             add.addOutput(
                 new OutputChannel(
-                    `${obj.LoudspeakerLayout.Name} ${index}${(speaker.IsImaginary)?" [IMAG]":""}`,
+                    `${
+                        (obj.LoudspeakerLayout.Name.length)? 
+                            obj.LoudspeakerLayout.Name : "spk" } ${
+                                index}${(speaker.IsImaginary)?" [IMAG]":""}`,
                      'spk', 
                     new AEDCoord(
                         speaker.Azimuth,
@@ -115,7 +118,7 @@ export default class IEMFormat {
                 Routing: <number[]> []
             },
             LoudspeakerLayout: {
-                Name: "",
+                Name: add.name + '_layout',
                 Loudspeakers: <object[]> []
             }
         }
@@ -123,9 +126,9 @@ export default class IEMFormat {
         add.decoder.output.channels.forEach((ch: OutputChannel, i: number) => {
 
             let spk = {
-                Azimuth: ch.coords.a || 0,
-                Elevation: ch.coords.e || 0,
-                Radius: ch.coords.d || 1,
+                Azimuth: (ch.coords)? ch.coords.a || 0 : 0,
+                Elevation: (ch.coords)? ch.coords.e || 0 : 0,
+                Radius: (ch.coords)? ch.coords.d || 1 : 0,
                 IsImaginary: isImag(add, i),
                 Channel: i + 1,
                 Gain: gainForChannel(add, i)
@@ -136,6 +139,8 @@ export default class IEMFormat {
 
             iem.LoudspeakerLayout.Loudspeakers.push(spk);
         });
+
+        removeNullSpeakers(add);
 
         iem.Decoder.Matrix = add.decoder.matrices[0].matrix;
 
@@ -149,9 +154,30 @@ export default class IEMFormat {
 
 }
 
+function removeNullSpeakers(add: ADD){
+
+    let new_chs: number[][] = [];
+
+    add.decoder.matrices[0].matrix.forEach((ch, i) => {
+        if(chIsImag(add, i))
+            new_chs.push(ch);
+    }); 
+
+    add.decoder.matrices[0].matrix = new_chs;
+
+}
+
+function summing_matrixWidth(add: ADD): number {
+    return add.decoder.output.summing_matrix[0].length;
+}
+
 function isImag(add: ADD, index: number): boolean {
     return add.decoder.output.summing_matrix[index]
-        .reduce((val: number, arr: number) => val + arr, 0) == 0.;
+        .reduce((is_null: boolean, val: number) => is_null && (val == 0), true);
+}
+
+function chIsImag(add: ADD, index: number): boolean {
+    return !add.decoder.matrices[0].matrix[index].reduce((is_null: boolean, val: number) => is_null && (val == 0), true)
 }
 
 function gainForChannel(add: ADD, index: number): number {

@@ -1,5 +1,5 @@
 {
-  "name": "dotadd.toolset",
+  "name": "dotadd.tools",
   "version": "0.0.1",
   "description": "",
   "main": "cjs/Converter.js",

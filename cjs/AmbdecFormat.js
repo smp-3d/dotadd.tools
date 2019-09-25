@@ -139,7 +139,8 @@ let AmbdecFormat = class AmbdecFormat {
       add.addMatrix(new _dotadd.Matrix(ambdec.normalisation, ambdec.mtx));
     }
 
-    let acnmask = Number.parseInt("0x" + ambdec.chmask).toString(2).split('').map(s => Number.parseInt(s));
+    let acnmask = [];
+    if (ambdec.chmask.length) acnmask = Number.parseInt("0x" + ambdec.chmask).toString(2).split('').map(s => Number.parseInt(s));else acnmask = new Array(ambdec.mtx[0].length).fill(1);
     add.decoder.matrices.forEach(mat => {
       mat.matrix.forEach((ch, i) => {
         let new_ch = [];
@@ -179,7 +180,7 @@ let AmbdecFormat = class AmbdecFormat {
     };
     ambdecAppendValue(out, "description\t", add.name + "/" + add.description);
     ambdecAppendNewlines(out, 1);
-    ambdecAppendValue(out, "version", "\t" + add.version);
+    ambdecAppendValue(out, "version", "\t" + (add.version ? +add.version : 0));
     ambdecAppendNewlines(out, 1);
     ambdecAppendValue(out, 'dec/chan_mask', "\t" + adjustMatrixAndGetChannelMask(add.decoder.matrices));
     ambdecAppendValue(out, 'dec/freq_bands', add.decoder.filters.length ? "2" : "1");
@@ -238,8 +239,7 @@ function parseAmbdecCommand(line) {
 function doParseMatrix(line, current_mtx, ambdec) {
   let elems = line.trim().split(/\s+/).map(el => el.trim()).filter(el => el.length);
 
-  if (elems[0] == 'add_row') {
-    elems.shift();
+  if (elems.shift() == 'add_row') {
     let coefs = elems.map(str => Number.parseFloat(str));
 
     switch (current_mtx) {
@@ -352,8 +352,8 @@ function adjustMatrixAndGetChannelMask(mtx) {
 
 function ambdecAppendSpeakers(out, add) {
   ambdecAppendValue(out, 'speakers/{');
-  add.decoder.output.channels.forEach(ch => {
-    out.str = out.str + `add_spkr\t${ch.name.split(/\s+/).join("_")}\t${ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0"}\t${ch.coords ? ch.coords.a : "0"}\t${ch.coords ? ch.coords.e : "0"}\n`;
+  add.decoder.output.channels.forEach((ch, i) => {
+    out.str = out.str + `add_spkr\t${ch.name && ch.name.length ? ch.name.split(/\s+/).join("_") : "spk" + i}\t${ch.coords ? ch.coords.d ? ch.coords.d : "1.0" : "1.0"}\t${ch.coords ? ch.coords.a : "0"}\t${ch.coords ? ch.coords.e : "0"}\n`;
   });
   ambdecSectionEnd(out);
 }
@@ -392,7 +392,7 @@ function ambdecRemoveImagSpeakers(add) {
   let new_chs = [];
   let new_summing_mtx = [];
   add.decoder.output.channels.forEach((ch, idx) => {
-    if (add.decoder.output.summing_matrix[idx].reduce((v, c) => c + v, 0) != 0) {
+    if (!add.decoder.output.summing_matrix[idx].reduce((is_null, c) => is_null && c == 0, true)) {
       new_summing_mtx.push(add.decoder.output.summing_matrix[idx]);
       new_chs.push(add.decoder.output.channels[idx]);
     }

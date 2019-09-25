@@ -71,7 +71,7 @@ let IEMFormat = class IEMFormat {
 
     for (let i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i) add.decoder.output.summing_matrix.push(new Array(num_outputs).fill(0));
 
-    obj.LoudspeakerLayout.Loudspeakers.forEach((speaker, index) => add.addOutput(new _dotadd.OutputChannel(`${obj.LoudspeakerLayout.Name} ${index}${speaker.IsImaginary ? " [IMAG]" : ""}`, 'spk', new _dotadd.AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius))));
+    obj.LoudspeakerLayout.Loudspeakers.forEach((speaker, index) => add.addOutput(new _dotadd.OutputChannel(`${obj.LoudspeakerLayout.Name.length ? obj.LoudspeakerLayout.Name : "spk"} ${index}${speaker.IsImaginary ? " [IMAG]" : ""}`, 'spk', new _dotadd.AEDCoord(speaker.Azimuth, speaker.Elevation, speaker.Radius))));
     obj.Decoder.Routing.forEach((ch, index) => {
       add.decoder.output.summing_matrix[ch - 1][index] = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
     });
@@ -92,15 +92,15 @@ let IEMFormat = class IEMFormat {
         Routing: []
       },
       LoudspeakerLayout: {
-        Name: "",
+        Name: add.name + '_layout',
         Loudspeakers: []
       }
     };
     add.decoder.output.channels.forEach((ch, i) => {
       let spk = {
-        Azimuth: ch.coords.a || 0,
-        Elevation: ch.coords.e || 0,
-        Radius: ch.coords.d || 1,
+        Azimuth: ch.coords ? ch.coords.a || 0 : 0,
+        Elevation: ch.coords ? ch.coords.e || 0 : 0,
+        Radius: ch.coords ? ch.coords.d || 1 : 0,
         IsImaginary: isImag(add, i),
         Channel: i + 1,
         Gain: gainForChannel(add, i)
@@ -108,6 +108,7 @@ let IEMFormat = class IEMFormat {
       if (!isImag(add, i)) iem.Decoder.Routing.push(i + 1);
       iem.LoudspeakerLayout.Loudspeakers.push(spk);
     });
+    removeNullSpeakers(add);
     iem.Decoder.Matrix = add.decoder.matrices[0].matrix;
     let prettify = opts.use('prettify');
     if (prettify) return JSON.stringify(iem, null, 4);else return JSON.stringify(iem);
@@ -118,8 +119,24 @@ IEMFormat = __decorate([(0, _ADCFormat._static_implements)()], IEMFormat);
 var _default = IEMFormat;
 exports.default = _default;
 
+function removeNullSpeakers(add) {
+  let new_chs = [];
+  add.decoder.matrices[0].matrix.forEach((ch, i) => {
+    if (chIsImag(add, i)) new_chs.push(ch);
+  });
+  add.decoder.matrices[0].matrix = new_chs;
+}
+
+function summing_matrixWidth(add) {
+  return add.decoder.output.summing_matrix[0].length;
+}
+
 function isImag(add, index) {
-  return add.decoder.output.summing_matrix[index].reduce((val, arr) => val + arr, 0) == 0.;
+  return add.decoder.output.summing_matrix[index].reduce((is_null, val) => is_null && val == 0, true);
+}
+
+function chIsImag(add, index) {
+  return !add.decoder.matrices[0].matrix[index].reduce((is_null, val) => is_null && val == 0, true);
 }
 
 function gainForChannel(add, index) {

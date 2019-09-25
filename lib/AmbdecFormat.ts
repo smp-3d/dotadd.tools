@@ -1,8 +1,6 @@
 import { ADD, Matrix, AEDCoord, Filter, OutputChannel, ACN } from 'dotadd.js';
 import { ParseResults, ConverterOptions, ConvertableTextFile } from './Converter'
 import { ADCFormat, _static_implements, ContainerType } from './ADCFormat'
-import { stringify } from 'querystring';
-import { Parser } from 'papaparse';
 import { ParseError } from './Util';
 
 class Ambdec {
@@ -140,8 +138,13 @@ export default class AmbdecFormat {
             add.addMatrix(new Matrix(ambdec.normalisation, ambdec.mtx));
         }
 
-        let acnmask = Number.parseInt("0x" + ambdec.chmask)
-                        .toString(2).split('').map(s => Number.parseInt(s));
+        let acnmask: number[] = [];
+
+        if(ambdec.chmask.length)
+            acnmask = Number.parseInt("0x" + ambdec.chmask)
+                            .toString(2).split('').map(s => Number.parseInt(s));
+        else 
+            acnmask = new Array(ambdec.mtx[0].length).fill(1);
 
         add.decoder.matrices.forEach(mat => {
 
@@ -203,7 +206,7 @@ export default class AmbdecFormat {
 
         ambdecAppendNewlines(out, 1);
 
-        ambdecAppendValue(out, "version", "\t"+add.version);
+        ambdecAppendValue(out, "version", "\t" + ((add.version)? +add.version : 0));
 
         ambdecAppendNewlines(out, 1);
 
@@ -271,9 +274,7 @@ function doParseMatrix(line: string, current_mtx: string, ambdec: Ambdec){
     
     let elems = line.trim().split(/\s+/).map(el => el.trim()).filter(el => el.length);
 
-    if(elems[0] == 'add_row'){
-
-        elems.shift();
+    if(elems.shift() == 'add_row'){
 
         let coefs = elems.map(str => Number.parseFloat(str));
 
@@ -423,12 +424,12 @@ function ambdecAppendSpeakers(out: { str: string }, add: ADD){
 
     ambdecAppendValue(out, 'speakers/{');
 
-    add.decoder.output.channels.forEach(ch => {
+    add.decoder.output.channels.forEach((ch, i) => {
         out.str = out.str + 
         `add_spkr\t${
-            ch.name.split(/\s+/).join("_")
+            (ch.name && ch.name.length) ? ch.name.split(/\s+/).join("_") : "spk"+i
         }\t${
-            (ch.coords)?(ch.coords.d)? ch.coords.d : "1.0" : "1.0"
+            (ch.coords)?(ch.coords.d) ? ch.coords.d : "1.0" : "1.0"
         }\t${
             (ch.coords)?ch.coords.a:"0"
         }\t${
@@ -476,7 +477,7 @@ function ambdecRemoveImagSpeakers(add: ADD){
 
     add.decoder.output.channels.forEach((ch, idx) => {
         
-        if(add.decoder.output.summing_matrix[idx].reduce((v, c) => c + v, 0) != 0){
+        if(!(add.decoder.output.summing_matrix[idx].reduce((is_null, c) => is_null && (c == 0), true))){
             new_summing_mtx.push(add.decoder.output.summing_matrix[idx]);
             new_chs.push(add.decoder.output.channels[idx]);
         }
