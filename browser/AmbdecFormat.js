@@ -99,7 +99,7 @@
 
             switch (cmd.name) {
               case '/description':
-                add.setName(cmd.value);
+                if (cmd.value && cmd.value.length) add.setName(cmd.value);else add.setName("ambdec_file");
                 break;
 
               case '/version':
@@ -252,7 +252,7 @@
   })(ParserState || (ParserState = {}));
 
   function parseAmbdecCommand(line) {
-    var elems = line.split(" ").map(function (s) {
+    var elems = line.split(/\s+|,/).map(function (s) {
       return s.trim();
     }).filter(function (s) {
       return s.length;
@@ -266,8 +266,8 @@
       value: null
     };
     if (elems.length > 1) return {
-      name: elems[0],
-      value: elems[1]
+      name: elems.shift(),
+      value: elems.join("_")
     };
     return {
       name: "",

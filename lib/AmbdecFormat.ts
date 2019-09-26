@@ -68,7 +68,10 @@ export default class AmbdecFormat {
                 switch(cmd.name){
 
                     case '/description':
-                        add.setName(cmd.value);
+                        if(cmd.value && cmd.value.length)
+                            add.setName(cmd.value);
+                        else
+                            add.setName("ambdec_file");
                         break;
                     case '/version':
                         add.setVersion(Number.parseInt(cmd.value));
@@ -253,7 +256,7 @@ enum ParserState {
 
 function parseAmbdecCommand(line: string): { name: string, value: any }{
 
-    let elems = line.split(" ")
+    let elems = line.split(/\s+|,/)
         .map(s => s.trim())
         .filter((s: string) => s.length);
 
@@ -264,7 +267,7 @@ function parseAmbdecCommand(line: string): { name: string, value: any }{
         return { name: elems[0], value: null };
 
     if(elems.length > 1)
-        return { name: elems[0], value: elems[1] };
+        return { name: <string> elems.shift(), value: elems.join("_") };
 
     return { name: "", value: "" };
 

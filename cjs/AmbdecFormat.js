@@ -70,7 +70,7 @@ let AmbdecFormat = class AmbdecFormat {
 
         switch (cmd.name) {
           case '/description':
-            add.setName(cmd.value);
+            if (cmd.value && cmd.value.length) add.setName(cmd.value);else add.setName("ambdec_file");
             break;
 
           case '/version':
@@ -217,7 +217,7 @@ var ParserState;
 })(ParserState || (ParserState = {}));
 
 function parseAmbdecCommand(line) {
-  let elems = line.split(" ").map(s => s.trim()).filter(s => s.length);
+  let elems = line.split(/\s+|,/).map(s => s.trim()).filter(s => s.length);
   if (elems[0] == '/}') return {
     name: 'end_mat',
     value: null
@@ -227,8 +227,8 @@ function parseAmbdecCommand(line) {
     value: null
   };
   if (elems.length > 1) return {
-    name: elems[0],
-    value: elems[1]
+    name: elems.shift(),
+    value: elems.join("_")
   };
   return {
     name: "",

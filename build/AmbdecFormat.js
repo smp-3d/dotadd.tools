@@ -50,7 +50,10 @@ let AmbdecFormat = class AmbdecFormat {
                 let cmd = parseAmbdecCommand(line);
                 switch (cmd.name) {
                     case '/description':
-                        add.setName(cmd.value);
+                        if (cmd.value && cmd.value.length)
+                            add.setName(cmd.value);
+                        else
+                            add.setName("ambdec_file");
                         break;
                     case '/version':
                         add.setVersion(Number.parseInt(cmd.value));
@@ -191,7 +194,7 @@ var ParserState;
     ParserState[ParserState["MATRIX"] = 2] = "MATRIX";
 })(ParserState || (ParserState = {}));
 function parseAmbdecCommand(line) {
-    let elems = line.split(" ")
+    let elems = line.split(/\s+|,/)
         .map(s => s.trim())
         .filter((s) => s.length);
     if (elems[0] == '/}')
@@ -199,7 +202,7 @@ function parseAmbdecCommand(line) {
     if (elems.length == 1)
         return { name: elems[0], value: null };
     if (elems.length > 1)
-        return { name: elems[0], value: elems[1] };
+        return { name: elems.shift(), value: elems.join("_") };
     return { name: "", value: "" };
 }
 function doParseMatrix(line, current_mtx, ambdec) {
