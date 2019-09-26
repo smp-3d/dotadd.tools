@@ -91,7 +91,8 @@
         }
 
         var mat = new _dotadd.Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
-        if (obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights != "none") mat.setWeighting(obj.Decoder.Weights);
+        if (obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights && obj.Decoder.Weights != "none") mat.setWeighting(obj.Decoder.Weights.toLowerCase());
+        console.log(mat);
         add.addMatrix(mat);
         var num_outputs = obj.LoudspeakerLayout.Loudspeakers.reduce(function (val, spk) {
           return val + +!spk.IsImaginary;

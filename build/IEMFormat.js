@@ -49,8 +49,9 @@ let IEMFormat = class IEMFormat {
             carry.messages.push(new ParserMessage("Could not read Date value from description string", ParserMessageLevels.warn));
         }
         let mat = new Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
-        if (obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights != "none")
-            mat.setWeighting(obj.Decoder.Weights);
+        if (obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights && obj.Decoder.Weights != "none")
+            mat.setWeighting(obj.Decoder.Weights.toLowerCase());
+        console.log(mat);
         add.addMatrix(mat);
         let num_outputs = obj.LoudspeakerLayout.Loudspeakers
             .reduce((val, spk) => val + +!spk.IsImaginary, 0);
