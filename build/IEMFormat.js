@@ -79,7 +79,7 @@ let IEMFormat = class IEMFormat {
                 Description: add.description,
                 ExpectedInputNormalization: add.decoder.matrices[0].getNormalization(),
                 Weights: (add.decoder.matrices[0].weights) ? add.decoder.matrices[0].weights : "none",
-                WeightsAlreadyApplied: false,
+                WeightsAlreadyApplied: (add.decoder.matrices[0].weights) ? true : false,
                 Matrix: [],
                 Routing: []
             },
