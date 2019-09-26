@@ -61,8 +61,8 @@ export default class IEMFormat {
 
         let mat = new Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
 
-        if(obj.Decoder.WeightsAlreadyApplied)
-            mat.setWeighting(obj.Deoder.Weights);
+        if(obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights != "none")
+            mat.setWeighting(obj.Decoder.Weights);
 
         add.addMatrix(mat);
 

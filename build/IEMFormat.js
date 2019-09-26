@@ -50,7 +50,7 @@ let IEMFormat = class IEMFormat {
         }
         let mat = new Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
         if (obj.Decoder.WeightsAlreadyApplied)
-            mat.setWeighting(obj.Deoder.Weights);
+            mat.setWeighting(obj.Decoder.Weights);
         add.addMatrix(mat);
         let num_outputs = obj.LoudspeakerLayout.Loudspeakers
             .reduce((val, spk) => val + +!spk.IsImaginary, 0);
