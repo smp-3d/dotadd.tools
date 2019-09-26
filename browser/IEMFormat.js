@@ -123,7 +123,7 @@
             Name: add.name,
             Description: add.description,
             ExpectedInputNormalization: add.decoder.matrices[0].getNormalization(),
-            Weights: "maxrE",
+            Weights: add.decoder.matrices[0].weights ? add.decoder.matrices[0].weights : "none",
             WeightsAlreadyApplied: false,
             Matrix: [],
             Routing: []
