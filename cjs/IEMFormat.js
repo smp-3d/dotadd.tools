@@ -63,7 +63,7 @@ let IEMFormat = class IEMFormat {
     }
 
     let mat = new _dotadd.Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
-    if (obj.Decoder.WeightsAlreadyApplied) mat.setWeighting(obj.Decoder.Weights);
+    if (obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights != "none") mat.setWeighting(obj.Decoder.Weights);
     add.addMatrix(mat);
     let num_outputs = obj.LoudspeakerLayout.Loudspeakers.reduce((val, spk) => val + +!spk.IsImaginary, 0);
     let num_imags = obj.LoudspeakerLayout.Loudspeakers.reduce((val, spk) => val + spk.IsImaginary, 0);
