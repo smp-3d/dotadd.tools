@@ -2,6 +2,7 @@ import { ContainerType, ADCFormat, _static_implements } from "./ADCFormat";
 import { ParseResults, ConverterOptions, ConverterOption } from './Converter';
 import { ADD, Matrix } from 'dotadd.js';
 import { ParseError } from './Util';
+import { j2xParser } from 'fast-xml-parser';
 
 @_static_implements<ADCFormat>()
 export default class AmbidecodeCoefs {
@@ -62,7 +63,26 @@ export default class AmbidecodeCoefs {
     }
 
     static fromADD(add: ADD): string {
-        return "";
-    }
 
+        const parser = new j2xParser({ ignoreAttributes: false, format: true, indentBy: "    " });
+
+        let base_obj = {
+            'ambidecode-coefs': {
+                '@_version': '0.1',
+                speaker: <any[]> []
+            }
+        }
+
+        add.decoder.matrices[add.decoder.matrices.length - 1].matrix.forEach((ch, chi) => {
+
+            base_obj["ambidecode-coefs"].speaker.push({
+                '@_index': chi,
+                coef: ch.map((coeff, acn) => { return {'#text': coeff.toFixed(20), '@_ACN': ''+ acn };})
+            });
+
+        });
+
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + parser.parse(base_obj);
+
+    }
 }

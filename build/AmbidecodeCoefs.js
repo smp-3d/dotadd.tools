@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 import { ContainerType, _static_implements } from "./ADCFormat";
 import { ADD, Matrix } from 'dotadd.js';
 import { ParseError } from './Util';
+import { j2xParser } from 'fast-xml-parser';
 let AmbidecodeCoefs = class AmbidecodeCoefs {
     static shortName() {
         return "ambidecode";
@@ -50,7 +51,20 @@ let AmbidecodeCoefs = class AmbidecodeCoefs {
         }
     }
     static fromADD(add) {
-        return "";
+        const parser = new j2xParser({ ignoreAttributes: false, format: true, indentBy: "    " });
+        let base_obj = {
+            'ambidecode-coefs': {
+                '@_version': '0.1',
+                speaker: []
+            }
+        };
+        add.decoder.matrices[add.decoder.matrices.length - 1].matrix.forEach((ch, chi) => {
+            base_obj["ambidecode-coefs"].speaker.push({
+                '@_index': chi,
+                coef: ch.map((coeff, acn) => { return { '#text': coeff.toFixed(20), '@_ACN': '' + acn }; })
+            });
+        });
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + parser.parse(base_obj);
     }
 };
 AmbidecodeCoefs = __decorate([

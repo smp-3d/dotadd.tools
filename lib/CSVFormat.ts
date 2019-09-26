@@ -37,6 +37,10 @@ export default class CSVFormat {
         
         add.createDefaultMetadata();
 
+        console.log(obj.data);
+
+        obj.data = obj.data.filter((arr: string[]) => arr[0] && arr[0].length);
+
         add.addMatrix(new Matrix('unknown', obj.data.map((arr: any[]) => arr.map((num: any) => Number.parseFloat(num)))));
 
         add.createDefaultOutputs();

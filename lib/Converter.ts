@@ -8,7 +8,6 @@ import * as Papa from 'papaparse';
 
 import { ParseError } from './Util';
 
-
 import AmbidecodeCoefs from './AmbidecodeCoefs';
 import AmbidecodeSettings from './AmbidecodeSettings';
 import IEMFormat from './IEMFormat';
@@ -65,7 +64,8 @@ export class ParseResults {
         name: string
         format: string,
         container: string,
-        data: string
+        data: string,
+        add: ADD
     }[] = [];
 }
 
@@ -228,7 +228,8 @@ export const Converter = {
                     name: res.name,
                     format: format,
                     container: containerTypeToString((<ADCFormat> converter).container_type()),
-                    data: data
+                    data: data,
+                    add: res
                 });
 
             });

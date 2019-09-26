@@ -11,6 +11,8 @@ var _dotadd = require("dotadd.js");
 
 var _Util = require("./Util");
 
+var _fastXmlParser = require("fast-xml-parser");
+
 var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
   var c = arguments.length,
       r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
@@ -62,7 +64,29 @@ let AmbidecodeCoefs = class AmbidecodeCoefs {
   }
 
   static fromADD(add) {
-    return "";
+    const parser = new _fastXmlParser.j2xParser({
+      ignoreAttributes: false,
+      format: true,
+      indentBy: "    "
+    });
+    let base_obj = {
+      'ambidecode-coefs': {
+        '@_version': '0.1',
+        speaker: []
+      }
+    };
+    add.decoder.matrices[add.decoder.matrices.length - 1].matrix.forEach((ch, chi) => {
+      base_obj["ambidecode-coefs"].speaker.push({
+        '@_index': chi,
+        coef: ch.map((coeff, acn) => {
+          return {
+            '#text': coeff.toFixed(20),
+            '@_ACN': '' + acn
+          };
+        })
+      });
+    });
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + parser.parse(base_obj);
   }
 
 };

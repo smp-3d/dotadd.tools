@@ -19,6 +19,7 @@ export declare class ParseResults {
         format: string;
         container: string;
         data: string;
+        add: ADD;
     }[];
 }
 export declare class ConvertableTextFile {

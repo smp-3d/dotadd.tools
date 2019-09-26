@@ -12,6 +12,7 @@ program.name('dotaddtool')
 program.command('convert <files...>')
         .description('convert between different ambisonic decoder description formats')
         .option('-o, --output <file>', 'output file')
+        .option('--out-dir <directory>', 'output directory')
         .option('-d, --description <description>', 'output file description')
         .option('-n, --name <name>', 'output file name')
         .option('-v, --version <version>', 'output file version')
@@ -28,7 +29,8 @@ program.command('info <files...>')
         .description('display info about ambisonic decoder descriptions');
 
 program.command('repair <file>')
-        .description('repair .add files');
+        .description('repair .add files')
+        .action(require("./repair"));
 
 program.command('validate <file>')
         .description('validate .add files')

@@ -50,6 +50,8 @@ let CSVFormat = class CSVFormat {
       name: "Ambisonic Decoder Description parsed from CSV File"
     });
     add.createDefaultMetadata();
+    console.log(obj.data);
+    obj.data = obj.data.filter(arr => arr[0] && arr[0].length);
     add.addMatrix(new _dotadd.Matrix('unknown', obj.data.map(arr => arr.map(num => Number.parseFloat(num)))));
     add.createDefaultOutputs();
     carry.incomplete_results.push(add);

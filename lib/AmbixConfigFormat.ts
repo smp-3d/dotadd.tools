@@ -25,7 +25,7 @@ class AmbixConf {
 export default class AmbixConfigFormat {
 
     static shortName(): string{
-        return "ambix"
+        return "config"
     }
 
     /**
@@ -103,7 +103,35 @@ export default class AmbixConfigFormat {
     }
 
     static fromADD(add: ADD, opts: ConverterOptions): string {
-        return "";
+
+        let out = { data: "" };
+
+        ambixWriteLine(out, "// created with the dotaddtool - " + new Date(Date.now()).toISOString());
+        ambixWriteNewlines(out, 2);
+
+        ambixWriteBlockBegin(out, "GLOBAL");
+
+        ambixWriteValue(out, "debug_msg", add.name);
+
+        ambixWriteValue(out, "coeff_scale", add.decoder.matrices[add.decoder.matrices.length - 1].normalization)
+        ambixWriteValue(out, "coeff_seq", "acn");
+
+        ambixWriteValue(out, "dec_mat_gain", "1.000");
+
+        ambixWriteBlockEnd(out);
+
+        ambixWriteNewlines(out, 2);
+
+        ambixWriteBlockBegin(out, "HRTF");
+        ambixWriteBlockEnd(out);
+
+        ambixWriteNewlines(out, 2);
+
+        ambixWriteDec(out, add.decoder.matrices[add.decoder.matrices.length - 1].matrix);
+
+        ambixWriteNewlines(out, 1);
+
+        return out.data;
     }
 
 };
@@ -249,4 +277,38 @@ function ambixDecApplyOptions(ambix: AmbixConf){
         });
 
     }
+}
+
+function ambixWriteDec(out: { data: string }, coeffs: number[][]) {
+
+    ambixWriteBlockBegin(out, "DECODERMATRIX");
+
+    coeffs.forEach(ch => {
+        ambixWriteLine(out, ch.join("\t"));
+    });
+
+    ambixWriteBlockEnd(out);
+}
+
+function ambixWriteBlockBegin(out: { data: string }, name: string ) {
+    ambixWriteLine(out, `#${name}`);
+}
+
+function ambixWriteBlockEnd(out: { data: string }) {
+    ambixWriteLine(out, "#END");
+}
+
+function ambixWriteValue(out: { data: string }, name: string, value: string) {
+    ambixWriteLine(out, `/${name}\t ${value}`); 
+}
+
+function ambixWriteLine(out: { data: string }, line: string) {
+    out.data = out.data + line + "\n";
+}
+
+function ambixWriteNewlines(out: { data: string }, lines: number) {
+
+    for(let i = 0; i < lines; ++i)
+        out.data = out.data + "\n";
+
 }

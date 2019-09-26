@@ -159,7 +159,8 @@ export const Converter = {
                     name: res.name,
                     format: format,
                     container: containerTypeToString(converter.container_type()),
-                    data: data
+                    data: data,
+                    add: res
                 });
             });
         }

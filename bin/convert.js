@@ -5,6 +5,8 @@ const fs = require('fs');
 const c = require('chalk');
 const columnify = require('columnify');
 
+const { ADD } = require('dotadd.js');
+
 const { Logger } = require('../cjs/Logger');
 
 module.exports = function(files, options){
@@ -26,7 +28,8 @@ module.exports = function(files, options){
          'version',
          'guessOutputs', 
          'reNorm',
-         'prettify');
+         'prettify',
+         'outDir');
 
     try {
 
@@ -74,7 +77,15 @@ module.exports = function(files, options){
 function outputFile(results, options){
 
     let output = options.use('output');
+    let output_dir = options.use('outDir');
 
+    if(results.output_files.length < 1){
+
+        console.log();
+        console.log("❌ Could not produce any output files");
+
+        process.exit(1);
+    }
 
     results.output_files.forEach((res, i) => {
 
@@ -93,6 +104,13 @@ function outputFile(results, options){
 
         output_file = file + '.' + ftype;
 
+        output_file = applyInterpolation(output_file, res.add, i);
+
+        if(output_dir)
+            output_file = output_dir + "/" + output_file;
+
+        console.log("Writing file: " + output_file);
+
         fs.writeFileSync(output_file, res.data);
     })
 
@@ -108,4 +126,18 @@ function exit_error(err, v){
         console.log(c.red("Program Error: ") + err.message);
 
     process.exit(1);
+}
+
+function applyInterpolation(filename, add, index){
+
+    filename = filename.replace("{norm}", add.decoder.matrices[0].normalization);
+    filename = filename.replace("{author}", add.author);
+    filename = filename.replace("{version}", add.version);
+    filename = filename.replace("{name}", add.name);
+    filename = filename.replace("{i}", index);
+    filename = filename.replace("{order}", add.decoder.matrices[0].ambisonicOrder());
+    filename = filename.replace("{spks}", add.decoder.output.channels.length);
+
+    return filename;
+
 }

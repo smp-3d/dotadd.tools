@@ -1,16 +1,16 @@
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
-    define(["exports", "./ADCFormat", "dotadd.js", "./Util"], factory);
+    define(["exports", "./ADCFormat", "dotadd.js", "./Util", "fast-xml-parser"], factory);
   } else if (typeof exports !== "undefined") {
-    factory(exports, require("./ADCFormat"), require("dotadd.js"), require("./Util"));
+    factory(exports, require("./ADCFormat"), require("dotadd.js"), require("./Util"), require("fast-xml-parser"));
   } else {
     var mod = {
       exports: {}
     };
-    factory(mod.exports, global.ADCFormat, global.dotadd, global.Util);
+    factory(mod.exports, global.ADCFormat, global.dotadd, global.Util, global.fastXmlParser);
     global.AmbidecodeCoefs = mod.exports;
   }
-})(this, function (_exports, _ADCFormat, _dotadd, _Util) {
+})(this, function (_exports, _ADCFormat, _dotadd, _Util, _fastXmlParser) {
   "use strict";
 
   Object.defineProperty(_exports, "__esModule", {
@@ -97,7 +97,29 @@
     }, {
       key: "fromADD",
       value: function fromADD(add) {
-        return "";
+        var parser = new _fastXmlParser.j2xParser({
+          ignoreAttributes: false,
+          format: true,
+          indentBy: "    "
+        });
+        var base_obj = {
+          'ambidecode-coefs': {
+            '@_version': '0.1',
+            speaker: []
+          }
+        };
+        add.decoder.matrices[add.decoder.matrices.length - 1].matrix.forEach(function (ch, chi) {
+          base_obj["ambidecode-coefs"].speaker.push({
+            '@_index': chi,
+            coef: ch.map(function (coeff, acn) {
+              return {
+                '#text': coeff.toFixed(20),
+                '@_ACN': '' + acn
+              };
+            })
+          });
+        });
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + parser.parse(base_obj);
       }
     }]);
 
