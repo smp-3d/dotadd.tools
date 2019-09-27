@@ -29,7 +29,7 @@ $ npm install -g dotadd.tools
 ### Tools
 
 - [dotaddtool](https://github.com/smp-3d/dotadd.tools ".ADD-console tool")
-- [.DD-browser app](https://github.com/smp-3d/dotadd-online-converter ".ADD-browser app")
+- [dotadd-web-converter](https://smp-3d.github.io/dotadd-online-converter)
 - [.ADD-extractor VSTs](https://github.com/smp-3d/dotadd-dec-ripper ".ADD-extractor VST")
 
 ------
