@@ -2,7 +2,6 @@ import { ADD, Matrix } from 'dotadd.js';
 import './AmbiEncoder'
 import AmbiEncoder from './AmbiEncoder';
 import c from 'chalk';
-import { SSL_OP_MSIE_SSLV2_RSA_PADDING } from 'constants';
 
 
 
@@ -66,7 +65,7 @@ export default {
             });
 
         });
-        
+
     }
 }
 
