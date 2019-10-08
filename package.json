@@ -32,7 +32,8 @@
     "core-js": "^2.6.9",
     "dotadd.js": "^0.2.3",
     "fast-xml-parser": "^3.12.20",
-    "papaparse": "^5.1.0"
+    "papaparse": "^5.1.0",
+    "spherical-harmonic-transform": "^0.1.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",

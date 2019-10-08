@@ -95,8 +95,11 @@ export default class IEMFormat {
 
     
         obj.Decoder.Routing.forEach((ch: number, index: number) => {
-            add.decoder.output.summing_matrix[ch - 1][index] 
-                = obj.LoudspeakerLayout.Loudspeakers[ch - 1].Gain;
+
+            let rch = ch - obj.Decoder.Routing[0];
+
+            add.decoder.output.summing_matrix[rch][index] 
+                = obj.LoudspeakerLayout.Loudspeakers[rch].Gain;
         });
 
         if(add.valid())
