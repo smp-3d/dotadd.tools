@@ -1,3 +1,5 @@
+import { ConvertableTextFile, ConverterOption, ConverterOptions, ConversionProcessData } from './ConverterHelpers'
+
 import { ADCFormat, ContainerType } from './ADCFormat';
 import { Logger as console } from './Logger';
 
@@ -41,110 +43,13 @@ let formats = [
     AmbixConfigFormat
 ] as ADCFormat[];
 
-export enum ParserMessageLevels {
-    note, warn, err
-}
 
-export class ParserMessage {
-
-    constructor(mess: string, level: ParserMessageLevels){
-        this.message = mess;
-        this.level = level;
-    }
-
-    message: string;
-    level: ParserMessageLevels;
-}
-
-export class ParseResults {
-    results: ADD[] = [];
-    incomplete_results: ADD[] = [];
-    messages: ParserMessage[] = [];
-    output_files: {
-        name: string
-        format: string,
-        container: string,
-        data: string,
-        add: ADD
-    }[] = [];
-}
-
-export class ConvertableTextFile {
-
-    constructor(fname: string, data: string){
-        this.filename = fname;
-        this.data = data;
-    }
-
-    filename: string;
-    data: string;
-}
-
-export class ConverterOption {
-
-    constructor(name: string, value: any) {
-        this.name = name;
-        this.value = value;
-    }
-
-    type(): string { return typeof this.value; }
-
-    peek(): any { return this.value; }
-
-    wasUsed() { return this.used; }
-
-    use(): any {
-        this.used = true;
-        return this.value;
-    }
-
-    name: string;
-
-    value: any;
-    used: boolean = false;
-}
-
-export class ConverterOptions {
-
-    constructor();
-    constructor(...args: ConverterOption[]) {
-        this.options = args;
-    }
-
-    has(name: string): boolean {
-        return this.options.find(opt => opt.name === name) != undefined;
-    }
-
-    get(name: string): ConverterOption | undefined {
-        return this.options.find(opt => opt.name === name);
-    }
-
-    use(name: string): any {
-
-        let opt = this.get(name);
-
-        if (opt)
-            return opt.use();
-
-    }
-
-    getUnused(): ConverterOption[] {
-
-        return this.options.reduce((carry, current) => {
-            !current.used ? carry.push(current) : null;
-            return carry;
-        },
-            [] as ConverterOption[]);
-    }
-
-    options: ConverterOption[] = [];
-}
 
 export const Converter = {
 
     convert_string(files: ConvertableTextFile[], options: ConverterOptions) {
 
-        let results = new ParseResults();
+        let results = new ConversionProcessData();
 
         for (let file of files) {
 
@@ -195,7 +100,7 @@ export const Converter = {
         return results;
     },
 
-    _do_convert(carry: ParseResults, opts: ConverterOptions){
+    _do_convert(carry: ConversionProcessData, opts: ConverterOptions){
         
         let ofopt = opts.use('format');
         let output = opts.use('output');
@@ -236,7 +141,7 @@ export const Converter = {
         } else throw new Error("Exporter '" + format + "' not found");
     },
 
-    _do_apply_options(carry: ParseResults, opts: ConverterOptions){
+    _do_apply_options(carry: ConversionProcessData, opts: ConverterOptions){
 
         let mopts = {
             description: opts.use('description'),
@@ -312,12 +217,12 @@ export const Converter = {
         }
     },
 
-    _do_parse_json(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
+    _do_parse_json(file: ConvertableTextFile, carry: ConversionProcessData, opts: ConverterOptions) {
         this._do_parse_native(file, carry, opts, JSON.parse(file.data), ContainerType.JSON);
     },
 
     _do_parse_xml(file: ConvertableTextFile, 
-                    carry: ParseResults, 
+                    carry: ConversionProcessData, 
                     opts: ConverterOptions) {
 
         this._do_parse_native(file, carry, opts, 
@@ -325,27 +230,27 @@ export const Converter = {
                                 ContainerType.XML);
     },
 
-    _do_parse_add(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
+    _do_parse_add(file: ConvertableTextFile, carry: ConversionProcessData, opts: ConverterOptions) {
         console.log("Loading .add file '" + file.filename + "'");
         ADDFormat.parse(JSON.parse(file.data), file.filename, carry, opts);
     },
 
-    _do_parse_csv(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions) {
+    _do_parse_csv(file: ConvertableTextFile, carry: ConversionProcessData, opts: ConverterOptions) {
         console.log("Parsing CSV file '" + file.filename + "'");
         CSVFormat.parse(Papa.parse(file.data), file.filename, carry, opts);
     },
 
-    _do_parse_ambdec(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions){
+    _do_parse_ambdec(file: ConvertableTextFile, carry: ConversionProcessData, opts: ConverterOptions){
         console.log("Parsing ambdec file '" + file.filename + "'");
         AmbdecFormat.parse(file, file.filename, carry, opts);
     },
 
-    _do_parse_ambix_config(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions){
+    _do_parse_ambix_config(file: ConvertableTextFile, carry: ConversionProcessData, opts: ConverterOptions){
         console.log("Parsing AmbiX configuration file '" + file.filename + "'");
         AmbixConfigFormat.parse(file, file.filename, carry, opts);
     },
 
-    _do_parse_native(file: ConvertableTextFile, carry: ParseResults, opts: ConverterOptions, 
+    _do_parse_native(file: ConvertableTextFile, carry: ConversionProcessData, opts: ConverterOptions, 
                         obj: Object, container_type: ContainerType) {
 
         let parsers_to_try = [] as ADCFormat[];

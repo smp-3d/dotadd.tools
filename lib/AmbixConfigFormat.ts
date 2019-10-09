@@ -1,5 +1,5 @@
 import { ContainerType, _static_implements, ADCFormat } from "./ADCFormat";
-import { ConvertableTextFile, ConverterOptions , ParseResults} from "./Converter"
+import { ConvertableTextFile, ConverterOptions, ConversionProcessData, ConverterFile } from "./ConverterHelpers"
 import { ADD, ACN, Matrix } from 'dotadd.js'
 import { Parser } from "papaparse";
 import { ParseError } from "./Util";
@@ -18,20 +18,20 @@ class AmbixConf {
     cflap = 0;
     dec_mat_gain = 1.;
     invert_condon_shortley = false;
-    coefs : number[][] = [];
+    coefs: number[][] = [];
 }
 
 @_static_implements<ADCFormat>()
 export default class AmbixConfigFormat {
 
-    static shortName(): string{
+    static shortName(): string {
         return "config"
     }
 
     /**
      * @returns {string} the name of the format
      */
-    static getName(): string{
+    static getName(): string {
         return "AmbiX Configuration Files"
     }
 
@@ -45,7 +45,7 @@ export default class AmbixConfigFormat {
     /**
      * @returns {ContainerType} the container type for this format
      */
-    static container_type() : ContainerType {
+    static container_type(): ContainerType {
         return ContainerType.CONFIG;
     }
 
@@ -57,6 +57,10 @@ export default class AmbixConfigFormat {
         return false;
     }
 
+    static test2(f: ConverterFile): boolean {
+        return false;
+    }
+
     /**
      * parse the format
      * @param obj object to parse
@@ -64,7 +68,7 @@ export default class AmbixConfigFormat {
      * @param carry carried from the last iteration if the parser needs/accepts more than one file
      * @param options converter options
      */
-    static parse(file: ConvertableTextFile, filename: string, carry: ParseResults, options: ConverterOptions): void { 
+    static parse(file: ConvertableTextFile, filename: string, carry: ConversionProcessData, options: ConverterOptions): void {
 
         let add = new ADD();
         let ambix = new AmbixConf();
@@ -73,16 +77,16 @@ export default class AmbixConfigFormat {
 
         let pstate = ParserState.DEFAULT;
 
-        lines.forEach(line => pstate = ambixReadLine(ambix, line, pstate)); 
+        lines.forEach(line => pstate = ambixReadLine(ambix, line, pstate));
 
-        if(!(ambix.coef_scale.toLowerCase() === 'sn3d' 
+        if (!(ambix.coef_scale.toLowerCase() === 'sn3d'
             || ambix.coef_scale.toLowerCase() === 'n3d'))
             throw new ParseError(filename + '.config', "Unexpected normalization: '" + ambix.coef_scale + "'");
 
         ambixDecApplyOptions(ambix);
         ambixDecFillZeroes(ambix);
 
-        add.setName((ambix.debug_msg.length)? ambix.debug_msg : filename)
+        add.setName((ambix.debug_msg.length) ? ambix.debug_msg : filename)
         add.setDescription("Parsed from ambix decoder configuration file / " + "filename" + ".config");
 
         add.addMatrix(new Matrix(ambix.coef_scale, ambix.coefs));
@@ -95,7 +99,7 @@ export default class AmbixConfigFormat {
 
         addMakeImags(add);
 
-        if(add.valid())
+        if (add.valid())
             carry.results.push(add);
         else
             carry.incomplete_results.push(add);
@@ -136,13 +140,13 @@ export default class AmbixConfigFormat {
 
 };
 
-function ambixDecFillZeroes(ambix: AmbixConf){
+function ambixDecFillZeroes(ambix: AmbixConf) {
 
     let max_s = ambix.coefs
-        .reduce((len: number, row: number[]) => ((len > row.length)? len : row.length), 0);
+        .reduce((len: number, row: number[]) => ((len > row.length) ? len : row.length), 0);
 
     ambix.coefs.forEach(row => {
-        while(!(row.length === max_s))
+        while (!(row.length === max_s))
             row.push(0);
     });
 
@@ -150,41 +154,41 @@ function ambixDecFillZeroes(ambix: AmbixConf){
 
 function ambixReadLine(ambix: AmbixConf, line: string, state: ParserState): ParserState {
 
-    switch (state){
+    switch (state) {
         case ParserState.GLOBAL:
             return ambixReadGlobalValue(ambix, line);
         case ParserState.DEC_MAT:
             return ambixReadDecoderRow(ambix, line);
         case ParserState.HRTF_SECT:
             return ambixReadHrtfSection(ambix, line);
-        default: 
+        default:
             return ambixReadDefault(ambix, line);
     }
 
-}   
+}
 
 function ambixReadDefault(ambix: AmbixConf, line: string): ParserState {
-    if(line.includes("#GLOBAL"))
+    if (line.includes("#GLOBAL"))
         return ParserState.GLOBAL;
-    
-    if(line.includes("#HRTF"))
+
+    if (line.includes("#HRTF"))
         return ParserState.HRTF_SECT;
 
-    if(line.includes("#DECODERMATRIX"))
+    if (line.includes("#DECODERMATRIX"))
         return ParserState.DEC_MAT;
 
     return ParserState.DEFAULT;
 }
 
 function ambixReadHrtfSection(ambix: AmbixConf, line: string): ParserState {
-    if(line.includes("#END"))
+    if (line.includes("#END"))
         return ParserState.DEFAULT;
-    
+
     return ParserState.HRTF_SECT;
 }
 
 function ambixReadDecoderRow(ambix: AmbixConf, line: string): ParserState {
-    if(line.includes("#END"))
+    if (line.includes("#END"))
         return ParserState.DEFAULT;
 
     let coefs = line.split(/\s+/).map(str => Number.parseFloat(str));
@@ -196,47 +200,47 @@ function ambixReadDecoderRow(ambix: AmbixConf, line: string): ParserState {
 
 function ambixReadGlobalValue(ambix: AmbixConf, line: string): ParserState {
 
-    if(line.includes("#END"))
+    if (line.includes("#END"))
         return ParserState.DEFAULT;
 
     let vals = line.split(/\s+/);
 
-    switch(vals.shift()){
+    switch (vals.shift()) {
         case '/debug_msg':
             ambix.debug_msg = vals.join(" ");
         case '/coeff_scale':
-            ambix.coef_scale = <string> vals.shift();
+            ambix.coef_scale = <string>vals.shift();
         case '/coeff_seq':
-            ambix.coef_seq = <string> vals.shift();
+            ambix.coef_seq = <string>vals.shift();
         case '/flip':
-            ambix.cflip = Number.parseInt(<string> vals.shift());
+            ambix.cflip = Number.parseInt(<string>vals.shift());
         case '/flap':
-            ambix.cflap = Number.parseInt(<string> vals.shift());
+            ambix.cflap = Number.parseInt(<string>vals.shift());
         case '/flop':
-            ambix.cflop = Number.parseInt(<string> vals.shift());
+            ambix.cflop = Number.parseInt(<string>vals.shift());
         case '/dec_mat_gain':
-            ambix.dec_mat_gain = Number.parseFloat(<string> vals.shift());
+            ambix.dec_mat_gain = Number.parseFloat(<string>vals.shift());
         case '/invert_condon_shortley':
-            ambix.invert_condon_shortley = Number.parseInt(<string> vals.shift()) === 1;
+            ambix.invert_condon_shortley = Number.parseInt(<string>vals.shift()) === 1;
     }
 
     return ParserState.GLOBAL;
 }
 
-function ambixRemoveComments(lines: string[]){
+function ambixRemoveComments(lines: string[]) {
     return lines.map(line => { return line.split("//")[0].trim(); })
 }
 
-function addMakeImags(add: ADD){
+function addMakeImags(add: ADD) {
 
     add.decoder.matrices[0].matrix.forEach((row, i) => {
-        if(row.reduce( ( is_nul: boolean, coef: number ) => is_nul && ( coef == 0 ), true ))
+        if (row.reduce((is_nul: boolean, coef: number) => is_nul && (coef == 0), true))
             add.decoder.output.summing_matrix[i].fill(0);
     });
 }
 
 
-function ambixDecApplyOptions(ambix: AmbixConf){
+function ambixDecApplyOptions(ambix: AmbixConf) {
 
     let flip = 1, flop = 1, flap = 1, total = 1;
 
@@ -246,24 +250,24 @@ function ambixDecApplyOptions(ambix: AmbixConf){
 
     let cshortley = ambix.invert_condon_shortley;
 
-    if( cshortley || flipp || flapp || flopp ){ 
+    if (cshortley || flipp || flapp || flopp) {
 
         ambix.coefs.forEach(row => {
 
-            row.forEach((coef, i)=> {
+            row.forEach((coef, i) => {
 
                 let m = ACN.index(i);
                 let l = ACN.order(i);
 
                 // this section is copied 1::1 from the kronlachner plugins code
 
-                if( flipp && ( m < 0 ) ) // m < 0 -> invert
+                if (flipp && (m < 0)) // m < 0 -> invert
                     flip = -1;
 
-                if ( flopp && ( ((m < 0) && !(m % 2)) || ((m >= 0) && (m % 2)) ) ) // m < 0 and even || m >= 0 and odd ()
+                if (flopp && (((m < 0) && !(m % 2)) || ((m >= 0) && (m % 2)))) // m < 0 and even || m >= 0 and odd ()
                     flop = -1;
 
-                if ( flapp && ( (l + m) % 2 ) ) // l+m odd   ( (odd, even) or (even, odd) )
+                if (flapp && ((l + m) % 2)) // l+m odd   ( (odd, even) or (even, odd) )
                     flap = -1;
 
                 if (cshortley)
@@ -290,7 +294,7 @@ function ambixWriteDec(out: { data: string }, coeffs: number[][]) {
     ambixWriteBlockEnd(out);
 }
 
-function ambixWriteBlockBegin(out: { data: string }, name: string ) {
+function ambixWriteBlockBegin(out: { data: string }, name: string) {
     ambixWriteLine(out, `#${name}`);
 }
 
@@ -299,7 +303,7 @@ function ambixWriteBlockEnd(out: { data: string }) {
 }
 
 function ambixWriteValue(out: { data: string }, name: string, value: string) {
-    ambixWriteLine(out, `/${name}\t ${value}`); 
+    ambixWriteLine(out, `/${name}\t ${value}`);
 }
 
 function ambixWriteLine(out: { data: string }, line: string) {
@@ -308,7 +312,7 @@ function ambixWriteLine(out: { data: string }, line: string) {
 
 function ambixWriteNewlines(out: { data: string }, lines: number) {
 
-    for(let i = 0; i < lines; ++i)
+    for (let i = 0; i < lines; ++i)
         out.data = out.data + "\n";
 
 }

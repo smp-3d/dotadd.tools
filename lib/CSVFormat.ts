@@ -1,5 +1,5 @@
 import { ADD, Matrix } from 'dotadd.js';
-import { ParseResults, ConverterOptions } from './Converter'
+import { ConversionProcessData, ConverterOptions, ConverterFile } from './ConverterHelpers'
 import { ADCFormat, _static_implements, ContainerType } from './ADCFormat'
 import * as Papa from 'papaparse'
 import { ParseError } from './Util';
@@ -26,15 +26,19 @@ export default class CSVFormat {
         return true;
     }
 
-    static parse(obj: any, filename: string, carry: ParseResults, opts: ConverterOptions) {
+    static test2(f: ConverterFile): boolean {
+        return false;
+    }
 
-        if(obj.errors.length)
+    static parse(obj: any, filename: string, carry: ConversionProcessData, opts: ConverterOptions) {
+
+        if (obj.errors.length)
             throw new ParseError(filename, "Could not parse CSV");
 
         let add = new ADD({
             name: "Ambisonic Decoder Description parsed from CSV File"
         });
-        
+
         add.createDefaultMetadata();
 
         console.log(obj.data);
@@ -53,14 +57,14 @@ export default class CSVFormat {
         let len = add.decoder.matrices[0].numCoeffs();
 
         let equal = add.decoder.matrices
-            .reduce((eq: boolean, mat: Matrix) =>  mat.numCoeffs() == len, true);
+            .reduce((eq: boolean, mat: Matrix) => mat.numCoeffs() == len, true);
 
         let output_arr = [];
 
-        if(equal){
-            for(let mat of add.decoder.matrices)
+        if (equal) {
+            for (let mat of add.decoder.matrices)
                 output_arr.push(...mat.matrix);
-        } else    
+        } else
             output_arr = add.decoder.matrices[0].matrix;
 
         return Papa.unparse(output_arr);

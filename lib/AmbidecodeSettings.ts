@@ -1,8 +1,11 @@
 import { ContainerType, ADCFormat, _static_implements } from "./ADCFormat";
 
-import { ParseResults, ConverterOptions, 
-            ConverterOption, ParserMessage, 
-            ParserMessageLevels } from './Converter';
+import {
+    ConversionProcessData, ConverterOptions,
+    ConverterOption, ConverterMessage,
+    ConverterMessageLevel,
+    ConverterFile
+} from './ConverterHelpers';
 
 import { ADD, Matrix, OutputChannel, AEDCoord, ACN } from 'dotadd.js';
 
@@ -17,37 +20,41 @@ export default class AmbidecodeSettings {
 
     static getName(): string {
         return "Ambidecode XML Settings Files"
-    }  
-      
+    }
+
     static getDescription(): string {
         return "Exported and Imported by the ICST Ambisonics Externals for Max/MSP.";
     }
 
-    static container_type() : ContainerType {
+    static container_type(): ContainerType {
         return ContainerType.XML;
     }
 
-    static test(obj: Object): Boolean {
+    static test(obj: Object): boolean {
         return obj.hasOwnProperty("ambidecode-settings");
     }
-   
-    static parse(obj: any, filename: string, carry: ParseResults, opts: ConverterOptions) {
 
-        let add = new ADD(); 
+    static test2(f: ConverterFile): boolean {
+        return false;
+    }
+
+    static parse(obj: any, filename: string, carry: ConversionProcessData, opts: ConverterOptions) {
+
+        let add = new ADD();
 
         let ambset = obj['ambidecode-settings'];
 
-        if(carry.incomplete_results.length){
-            add = <ADD> carry.incomplete_results.pop();
+        if (carry.incomplete_results.length) {
+            add = <ADD>carry.incomplete_results.pop();
             console.log('using incomplete result from previous run')
         }
         else add.setName(filename);
-        
 
-        if(!(ambset.type == 'SN3D' || ambset.type == 'N3D'))
+
+        if (!(ambset.type == 'SN3D' || ambset.type == 'N3D'))
             throw new ParseError(filename, "Unexpected normalisation: " + ambset.type);
 
-        if(add.decoder.matrices.length){
+        if (add.decoder.matrices.length) {
             add.decoder.matrices[0].setNormalization(ambset.type);
         } else {
             add.addMatrix(new Matrix(ambset.type, []));
@@ -64,7 +71,7 @@ export default class AmbidecodeSettings {
 
         add.createDefaultMetadata();
 
-        if(add.valid()){
+        if (add.valid()) {
             carry.results.push(add);
         }
         else {

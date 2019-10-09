@@ -1,19 +1,19 @@
 import { ADD, Matrix, AEDCoord, Filter, OutputChannel, ACN } from 'dotadd.js';
-import { ParseResults, ConverterOptions, ConvertableTextFile } from './Converter'
+import { ConversionProcessData, ConverterOptions, ConvertableTextFile, ConverterFile } from './ConverterHelpers'
 import { ADCFormat, _static_implements, ContainerType } from './ADCFormat'
 import { ParseError } from './Util';
 
 class Ambdec {
-    normalisation =  "";
-    xover =  0;
-    xover_ratio =  0;
+    normalisation = "";
+    xover = 0;
+    xover_ratio = 0;
 
     hfmtx: number[][] = [];
     lfmtx: number[][] = [];
 
-    mtx : number[][] = [];
+    mtx: number[][] = [];
 
-    spks =  <{ coord: AEDCoord, name: string }[]> [];
+    spks = <{ coord: AEDCoord, name: string }[]>[];
 
     chmask = "";
 }
@@ -41,7 +41,12 @@ export default class AmbdecFormat {
         return false;
     }
 
-    static parse(file: ConvertableTextFile, filename: string, carry: ParseResults, opts: ConverterOptions) {
+    static test2(f: ConverterFile): boolean {
+        return false;
+    }
+
+
+    static parse(file: ConvertableTextFile, filename: string, carry: ConversionProcessData, opts: ConverterOptions) {
 
         let add = new ADD();
 
@@ -58,17 +63,17 @@ export default class AmbdecFormat {
 
             line = line.split('#')[0];
 
-            if(!line.length)
+            if (!line.length)
                 return;
 
-            if(line.charAt(0) == '/'){
+            if (line.charAt(0) == '/') {
 
                 let cmd = parseAmbdecCommand(line);
 
-                switch(cmd.name){
+                switch (cmd.name) {
 
                     case '/description':
-                        if(cmd.value && cmd.value.length)
+                        if (cmd.value && cmd.value.length)
                             add.setName(cmd.value);
                         else
                             add.setName("ambdec_file");
@@ -105,11 +110,11 @@ export default class AmbdecFormat {
                     case 'end_mat':
                         parser_state = ParserState.COMMANDS;
                         break;
-                        
+
                 }
             } else {
 
-                switch(parser_state){
+                switch (parser_state) {
                     case ParserState.MATRIX:
                         doParseMatrix(line, current_matrix, ambdec);
                         break;
@@ -121,42 +126,42 @@ export default class AmbdecFormat {
 
         });
 
-        if(ambdec.normalisation.toLowerCase() != 'sn3d' 
+        if (ambdec.normalisation.toLowerCase() != 'sn3d'
             && ambdec.normalisation.toLowerCase() != 'n3d')
             throw new ParseError(filename, "Unexpected normalisation: " + ambdec.normalisation);
 
-        
 
-        add.setDescription("Parsed from ambdec configuration file '" +  filename + "'");
 
-        if(ambdec.hfmtx.length && ambdec.lfmtx.length){
-            
+        add.setDescription("Parsed from ambdec configuration file '" + filename + "'");
+
+        if (ambdec.hfmtx.length && ambdec.lfmtx.length) {
+
             add.addFilter(Filter.makeLowpass("lfmatrix", 0, ambdec.xover));
             add.addFilter(Filter.makeHighpass("hfmatrix", 0, ambdec.xover));
 
             add.addMatrix(new Matrix(ambdec.normalisation, ambdec.lfmtx));
             add.addMatrix(new Matrix(ambdec.normalisation, ambdec.hfmtx));
 
-        } else if(ambdec.mtx) {
+        } else if (ambdec.mtx) {
             add.addMatrix(new Matrix(ambdec.normalisation, ambdec.mtx));
         }
 
         let acnmask: number[] = [];
 
-        if(ambdec.chmask.length)
+        if (ambdec.chmask.length)
             acnmask = Number.parseInt("0x" + ambdec.chmask)
-                            .toString(2).split('').map(s => Number.parseInt(s));
-        else 
+                .toString(2).split('').map(s => Number.parseInt(s));
+        else
             acnmask = new Array(ambdec.mtx[0].length).fill(1);
 
         add.decoder.matrices.forEach(mat => {
 
             mat.matrix.forEach((ch, i) => {
 
-                let new_ch : number[] = [];
+                let new_ch: number[] = [];
 
                 acnmask.forEach(nfill => {
-                    new_ch.push((nfill)? <number> ch.shift() : 0 );
+                    new_ch.push((nfill) ? <number>ch.shift() : 0);
                 });
 
                 mat.matrix[i] = new_ch;
@@ -168,7 +173,7 @@ export default class AmbdecFormat {
             add.addOutput(new OutputChannel(spk.name, 'spk', spk.coord));
         });
 
-        for(let i = 0; i < add.numOutputs(); ++i){
+        for (let i = 0; i < add.numOutputs(); ++i) {
 
             add.decoder.output.summing_matrix.push(
                 new Array(add.totalMatrixOutputs()).fill(0)
@@ -176,19 +181,19 @@ export default class AmbdecFormat {
 
             add.decoder.output.summing_matrix[i][i] = 1;
 
-            if(add.decoder.filters.length)
+            if (add.decoder.filters.length)
                 add.decoder.output.summing_matrix[i][i + add.numOutputs()] = 1;
         }
 
         add.createDefaultMetadata();
-        
-        if(add.valid())
+
+        if (add.valid())
             carry.results.push(add);
         else
             carry.incomplete_results.push(add);
     }
 
-    static fromADD(add: ADD): string {   
+    static fromADD(add: ADD): string {
 
         ambdecRemoveImagSpeakers(add);
 
@@ -198,7 +203,7 @@ export default class AmbdecFormat {
 
         let xover_f = 0;
 
-        if(pair) {
+        if (pair) {
             xover_f = add.decoder.filters[pair.h].low;
             dualband = true;
         }
@@ -209,13 +214,13 @@ export default class AmbdecFormat {
 
         ambdecAppendNewlines(out, 1);
 
-        ambdecAppendValue(out, "version", "\t" + ((add.version)? +add.version : 0));
+        ambdecAppendValue(out, "version", "\t" + ((add.version) ? +add.version : 0));
 
         ambdecAppendNewlines(out, 1);
 
-        ambdecAppendValue(out, 'dec/chan_mask', "\t"+adjustMatrixAndGetChannelMask(add.decoder.matrices));
-        ambdecAppendValue(out, 'dec/freq_bands', ((add.decoder.filters.length)?"2":"1"));
-        ambdecAppendValue(out, 'dec/speakers', "\t"+add.decoder.output.channels.length);
+        ambdecAppendValue(out, 'dec/chan_mask', "\t" + adjustMatrixAndGetChannelMask(add.decoder.matrices));
+        ambdecAppendValue(out, 'dec/freq_bands', ((add.decoder.filters.length) ? "2" : "1"));
+        ambdecAppendValue(out, 'dec/speakers', "\t" + add.decoder.output.channels.length);
         ambdecAppendValue(out, 'dec/coeff_scale', add.decoder.matrices[0].getNormalization());
 
         ambdecAppendNewlines(out, 1);
@@ -223,8 +228,8 @@ export default class AmbdecFormat {
         ambdecAppendValue(out, 'out/input_scale', add.decoder.matrices[0].getNormalization());
         ambdecAppendValue(out, 'out/nfeff_comp', 'output');
         ambdecAppendValue(out, 'out/delay_comp', 'off'),
-        ambdecAppendValue(out, 'out/level_comp', 'off'),
-        ambdecAppendValue(out, 'out/xover_freq', ""+xover_f);
+            ambdecAppendValue(out, 'out/level_comp', 'off'),
+            ambdecAppendValue(out, 'out/xover_freq', "" + xover_f);
         ambdecAppendValue(out, 'out/xover_ratio', '0');
 
         ambdecAppendNewlines(out, 3);
@@ -233,10 +238,10 @@ export default class AmbdecFormat {
 
         ambdecAppendNewlines(out, 2);
 
-        if(!dualband)
+        if (!dualband)
             ambdecWriteMatrix(out, add.decoder.matrices[0].matrix, 'r');
         else {
-            if(pair) {
+            if (pair) {
                 ambdecWriteMatrix(out, add.decoder.matrices[pair.l].matrix, 'lf');
                 ambdecAppendNewlines(out, 1);
                 ambdecWriteMatrix(out, add.decoder.matrices[pair.h].matrix, 'hf');
@@ -254,34 +259,34 @@ enum ParserState {
     MATRIX
 }
 
-function parseAmbdecCommand(line: string): { name: string, value: any }{
+function parseAmbdecCommand(line: string): { name: string, value: any } {
 
     let elems = line.split(/\s+|,/)
         .map(s => s.trim())
         .filter((s: string) => s.length);
 
-    if(elems[0] == '/}')
+    if (elems[0] == '/}')
         return { name: 'end_mat', value: null };
 
-    if(elems.length == 1)
+    if (elems.length == 1)
         return { name: elems[0], value: null };
 
-    if(elems.length > 1)
-        return { name: <string> elems.shift(), value: elems.join("_") };
+    if (elems.length > 1)
+        return { name: <string>elems.shift(), value: elems.join("_") };
 
     return { name: "", value: "" };
 
 }
 
-function doParseMatrix(line: string, current_mtx: string, ambdec: Ambdec){
-    
+function doParseMatrix(line: string, current_mtx: string, ambdec: Ambdec) {
+
     let elems = line.trim().split(/\s+/).map(el => el.trim()).filter(el => el.length);
 
-    if(elems.shift() == 'add_row'){
+    if (elems.shift() == 'add_row') {
 
         let coefs = elems.map(str => Number.parseFloat(str));
 
-        switch(current_mtx){
+        switch (current_mtx) {
             case 'lf':
                 ambdec.lfmtx.push(coefs);
                 break;
@@ -290,18 +295,18 @@ function doParseMatrix(line: string, current_mtx: string, ambdec: Ambdec){
                 break;
             case 'r':
                 ambdec.mtx.push(coefs);
-                
+
         }
     }
 }
 
-function doParseSpeaker(line: string, ambdec: Ambdec){
+function doParseSpeaker(line: string, ambdec: Ambdec) {
 
     let elems = line.trim().split(/\s+/)
-                .map((el: string) => el.trim())
-                .filter((el: string) => el.length);
+        .map((el: string) => el.trim())
+        .filter((el: string) => el.length);
 
-    if(elems.shift() == 'add_spkr'){
+    if (elems.shift() == 'add_spkr') {
 
         let el_name = elems.shift();
 
@@ -309,33 +314,33 @@ function doParseSpeaker(line: string, ambdec: Ambdec){
 
         ambdec.spks.push({
             coord: new AEDCoord(crs[1], crs[2], crs[0]),
-            name: <string> el_name
+            name: <string>el_name
         });
     }
 }
 
-function ambdecAppendNewlines(out: { str: string }, lines: number){
-    for(let i = 0; i < lines; ++i)
+function ambdecAppendNewlines(out: { str: string }, lines: number) {
+    for (let i = 0; i < lines; ++i)
         out.str = out.str + "\n";
 }
 
-function ambdecAppendLine(out: { str: string }, line: string){
+function ambdecAppendLine(out: { str: string }, line: string) {
     out.str = out.str + line + "\n";
 }
 
-function ambdecAppendValue(out: { str: string }, name: string, value?: string){
+function ambdecAppendValue(out: { str: string }, name: string, value?: string) {
     out.str = out.str + '/' + name + ((value) ? " \t" + value + "\n" : "\n");
 }
 
-function ambdecSectionEnd(out: { str: string }){
+function ambdecSectionEnd(out: { str: string }) {
     ambdecAppendValue(out, "}");
 }
 
-function ambdecWriteMatrix(out: { str: string }, matrix: number[][], type: string){
+function ambdecWriteMatrix(out: { str: string }, matrix: number[][], type: string) {
 
     let mat_begin = "";
 
-    switch(type){
+    switch (type) {
         case "lf":
             mat_begin = "hfmatrix/{";
             break;
@@ -352,7 +357,7 @@ function ambdecWriteMatrix(out: { str: string }, matrix: number[][], type: strin
     let order = ACN.order(matrix[0].length);
     let order_gain_line = "order_gain"
 
-    for(let i = 0; i < order; ++i)
+    for (let i = 0; i < order; ++i)
         order_gain_line = order_gain_line + "\t1.0"
 
     ambdecAppendLine(out, order_gain_line);
@@ -360,7 +365,7 @@ function ambdecWriteMatrix(out: { str: string }, matrix: number[][], type: strin
     matrix.forEach(ch => {
         ambdecAppendLine(out, "add_row " + ch.join("  "));
     });
-    
+
     ambdecSectionEnd(out);
 }
 
@@ -371,7 +376,7 @@ function adjustMatrixAndGetChannelMask(mtx: Matrix[]): string {
 
     // find the largest matrix
     mtx.forEach((mat, idx) => {
-        if(mat.numCoeffs() > num_coeffs){
+        if (mat.numCoeffs() > num_coeffs) {
             mat_idx = idx;
             num_coeffs = mat.numCoeffs();
         }
@@ -380,7 +385,7 @@ function adjustMatrixAndGetChannelMask(mtx: Matrix[]): string {
     let map: boolean[] = [];
 
     // create a map of only zero values
-    for(let i = 0; i < num_coeffs; ++i)
+    for (let i = 0; i < num_coeffs; ++i)
         map.push(mtx[mat_idx].matrix
             .reduce((carry: boolean, arr: number[]) => (arr[i] == 0) && carry, true));
 
@@ -388,7 +393,7 @@ function adjustMatrixAndGetChannelMask(mtx: Matrix[]): string {
 
     mtx.forEach((mat, idx) => {
 
-        if(idx === mat_idx)
+        if (idx === mat_idx)
             return;
 
         map.forEach((cf, i) => {
@@ -397,19 +402,19 @@ function adjustMatrixAndGetChannelMask(mtx: Matrix[]): string {
                 .reduce((carry: boolean, arr: number[]) => (arr[i] == 0) && carry, true);
 
         });
-        
+
     });
 
     mtx.forEach((mat, idx) => {
 
         mat.matrix.forEach((ch, i) => {
 
-            let new_arr : number[] = [];
+            let new_arr: number[] = [];
 
             map.forEach(f => {
-                if(!f)
-                    new_arr.push(<number> ch.shift());
-                else 
+                if (!f)
+                    new_arr.push(<number>ch.shift());
+                else
                     ch.shift();
             });
 
@@ -419,25 +424,25 @@ function adjustMatrixAndGetChannelMask(mtx: Matrix[]): string {
 
     });
 
-    return Number.parseInt(map.map(b => b?"0":"1").join(""), 2).toString(16);
+    return Number.parseInt(map.map(b => b ? "0" : "1").join(""), 2).toString(16);
 
 }
 
-function ambdecAppendSpeakers(out: { str: string }, add: ADD){
+function ambdecAppendSpeakers(out: { str: string }, add: ADD) {
 
     ambdecAppendValue(out, 'speakers/{');
 
     add.decoder.output.channels.forEach((ch, i) => {
-        out.str = out.str + 
-        `add_spkr\t${
-            (ch.name && ch.name.length) ? ch.name.split(/\s+/).join("_") : "spk"+i
-        }\t${
-            (ch.coords)?(ch.coords.d) ? ch.coords.d : "1.0" : "1.0"
-        }\t${
-            (ch.coords)?ch.coords.a:"0"
-        }\t${
-            (ch.coords)?ch.coords.e:"0"
-        }\n`;   
+        out.str = out.str +
+            `add_spkr\t${
+            (ch.name && ch.name.length) ? ch.name.split(/\s+/).join("_") : "spk" + i
+            }\t${
+            (ch.coords) ? (ch.coords.d) ? ch.coords.d : "1.0" : "1.0"
+            }\t${
+            (ch.coords) ? ch.coords.a : "0"
+            }\t${
+            (ch.coords) ? ch.coords.e : "0"
+            }\n`;
     })
 
     ambdecSectionEnd(out);
@@ -449,19 +454,19 @@ function ambdecFindXoverPair(filters: Filter[]): { h: number, l: number } | unde
         filters.forEach((flt, idx) => {
             filters.forEach((flt2, idx2) => {
 
-                if(idx === idx2)
+                if (idx === idx2)
                     return;
 
-                if(flt.isHighpass() && flt2.isLowpass()){
-                    if(flt.low == flt2.high)
+                if (flt.isHighpass() && flt2.isLowpass()) {
+                    if (flt.low == flt2.high)
                         throw { h: idx, l: idx2 };
                 }
 
-                if(flt.isLowpass() && flt2.isHighpass()){
-                    if(flt.high == flt2.low)
+                if (flt.isLowpass() && flt2.isHighpass()) {
+                    if (flt.high == flt2.low)
                         throw { h: idx2, l: idx };
                 }
-                
+
             });
         })
     } catch (result) {
@@ -469,18 +474,18 @@ function ambdecFindXoverPair(filters: Filter[]): { h: number, l: number } | unde
     }
 }
 
-function ambdecChannelMaskForOrder(order: number){
+function ambdecChannelMaskForOrder(order: number) {
     return Number.parseInt(new Array(ACN.maxChannels(order)).fill(1).join(""), 2).toString(16);
 }
 
-function ambdecRemoveImagSpeakers(add: ADD){
+function ambdecRemoveImagSpeakers(add: ADD) {
 
     let new_chs: OutputChannel[] = [];
     let new_summing_mtx: number[][] = [];
 
     add.decoder.output.channels.forEach((ch, idx) => {
-        
-        if(!(add.decoder.output.summing_matrix[idx].reduce((is_null, c) => is_null && (c == 0), true))){
+
+        if (!(add.decoder.output.summing_matrix[idx].reduce((is_null, c) => is_null && (c == 0), true))) {
             new_summing_mtx.push(add.decoder.output.summing_matrix[idx]);
             new_chs.push(add.decoder.output.channels[idx]);
         }

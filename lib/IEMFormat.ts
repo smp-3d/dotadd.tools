@@ -1,5 +1,5 @@
 import { _static_implements, ADCFormat, ContainerType } from './ADCFormat'
-import { ParseResults, ConverterOptions, ParserMessage, ParserMessageLevels } from './Converter'
+import { ConversionProcessData, ConverterOptions, ConverterMessage, ConverterMessageLevel, ConverterFile, ConverterMessageStage } from './ConverterHelpers'
 import { ADD, Matrix, OutputChannel, AEDCoord } from 'dotadd.js'
 import { ParseError } from './Util';
 
@@ -13,8 +13,8 @@ export default class IEMFormat {
 
     static getName(): string {
         return "IEM AllRad Decoder Configuration Files"
-    }  
-      
+    }
+
     static getDescription(): string {
         return "Exported and imported by the IEM Allrad decoder. Can also be read by the IEM Simple Decoder";
     }
@@ -23,14 +23,18 @@ export default class IEMFormat {
         return ContainerType.JSON;
     }
 
-    static test(obj: any): Boolean {
-        return obj.hasOwnProperty('Name') 
-                && obj.hasOwnProperty("Description") 
-                && obj.hasOwnProperty("Decoder")
-                && obj.Decoder.hasOwnProperty("Weights");
+    static test(obj: any): boolean {
+        return obj.hasOwnProperty('Name')
+            && obj.hasOwnProperty("Description")
+            && obj.hasOwnProperty("Decoder")
+            && obj.Decoder.hasOwnProperty("Weights");
     }
-   
-    static parse(obj: any, filename: string, carry: ParseResults) {
+
+    static test2(f: ConverterFile): boolean {
+        return false;
+    }
+
+    static parse(obj: any, filename: string, carry: ConversionProcessData) {
 
         let add = new ADD({
             name: obj.Name,
@@ -38,10 +42,10 @@ export default class IEMFormat {
             author: "IEM Graz",
         });
 
-        if(!obj.LoudspeakerLayout)
+        if (!obj.LoudspeakerLayout)
             throw new ParseError(filename, "No Loudspeaker Layout found.");
 
-        if(!obj.Decoder)
+        if (!obj.Decoder)
             throw new ParseError(filename, "No Decoder found in File");
 
         let date_str = obj.Description.split(".")[obj.Description.split(".").length - 1].trim();
@@ -50,18 +54,18 @@ export default class IEMFormat {
 
         let date = new Date(date_str.slice(0, -2));
 
-        date.setHours(date.getHours() + ((ampm == 'pm')? 12 : 0));
+        date.setHours(date.getHours() + ((ampm == 'pm') ? 12 : 0));
 
         try {
             add.setDate(date);
-        } catch(e) {
+        } catch (e) {
             add.setDate(new Date(Date.now()).toISOString());
-            carry.messages.push(new ParserMessage("Could not read Date value from description string", ParserMessageLevels.warn));
+            carry.messages.push(new ConverterMessage("Could not read Date value from description string", ConverterMessageLevel.warn, ConverterMessageStage.parse));
         }
 
         let mat = new Matrix(obj.Decoder.ExpectedInputNormalization, obj.Decoder.Matrix);
 
-        if(obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights && obj.Decoder.Weights != "none")
+        if (obj.Decoder.WeightsAlreadyApplied && obj.Decoder.Weights && obj.Decoder.Weights != "none")
             mat.setWeighting(obj.Decoder.Weights.toLowerCase());
 
         console.log(mat);
@@ -76,33 +80,33 @@ export default class IEMFormat {
 
         add.decoder.output.summing_matrix = [];
 
-        for(let i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i)
+        for (let i = 0; i < obj.LoudspeakerLayout.Loudspeakers.length; ++i)
             add.decoder.output.summing_matrix.push(new Array(num_outputs).fill(0));
 
-        obj.LoudspeakerLayout.Loudspeakers.forEach((speaker: any, index: number) => 
+        obj.LoudspeakerLayout.Loudspeakers.forEach((speaker: any, index: number) =>
             add.addOutput(
                 new OutputChannel(
                     `${
-                        (obj.LoudspeakerLayout.Name.length)? 
-                            obj.LoudspeakerLayout.Name : "spk" } ${
-                                index}${(speaker.IsImaginary)?" [IMAG]":""}`,
-                     'spk', 
+                    (obj.LoudspeakerLayout.Name.length) ?
+                        obj.LoudspeakerLayout.Name : "spk"} ${
+                    index}${(speaker.IsImaginary) ? " [IMAG]" : ""}`,
+                    'spk',
                     new AEDCoord(
                         speaker.Azimuth,
                         speaker.Elevation,
                         speaker.Radius
                     ))));
 
-    
+
         obj.Decoder.Routing.forEach((ch: number, index: number) => {
 
             let rch = ch - obj.Decoder.Routing[0];
 
-            add.decoder.output.summing_matrix[rch][index] 
+            add.decoder.output.summing_matrix[rch][index]
                 = obj.LoudspeakerLayout.Loudspeakers[rch].Gain;
         });
 
-        if(add.valid())
+        if (add.valid())
             carry.results.push(add);
         else
             carry.incomplete_results.push(add);
@@ -117,30 +121,30 @@ export default class IEMFormat {
                 Name: add.name,
                 Description: add.description,
                 ExpectedInputNormalization: add.decoder.matrices[0].getNormalization(),
-                Weights: (add.decoder.matrices[0].weights)? add.decoder.matrices[0].weights : "none",
-                WeightsAlreadyApplied: (add.decoder.matrices[0].weights)?true:false,
-                Matrix: <number[][]> [],
-                Routing: <number[]> []
+                Weights: (add.decoder.matrices[0].weights) ? add.decoder.matrices[0].weights : "none",
+                WeightsAlreadyApplied: (add.decoder.matrices[0].weights) ? true : false,
+                Matrix: <number[][]>[],
+                Routing: <number[]>[]
             },
             LoudspeakerLayout: {
                 Name: add.name + '_layout',
-                Loudspeakers: <object[]> []
+                Loudspeakers: <object[]>[]
             }
         }
 
         add.decoder.output.channels.forEach((ch: OutputChannel, i: number) => {
 
             let spk = {
-                Azimuth: (ch.coords)? ch.coords.a || 0 : 0,
-                Elevation: (ch.coords)? ch.coords.e || 0 : 0,
-                Radius: (ch.coords)? ch.coords.d || 1 : 0,
+                Azimuth: (ch.coords) ? ch.coords.a || 0 : 0,
+                Elevation: (ch.coords) ? ch.coords.e || 0 : 0,
+                Radius: (ch.coords) ? ch.coords.d || 1 : 0,
                 IsImaginary: isImag(add, i),
                 Channel: i + 1,
                 Gain: gainForChannel(add, i)
             }
 
-            if(!isImag(add, i))
-                iem.Decoder.Routing.push(i+1);
+            if (!isImag(add, i))
+                iem.Decoder.Routing.push(i + 1);
 
             iem.LoudspeakerLayout.Loudspeakers.push(spk);
         });
@@ -151,7 +155,7 @@ export default class IEMFormat {
 
         let prettify = opts.use('prettify');
 
-        if(prettify)
+        if (prettify)
             return JSON.stringify(iem, null, 4);
         else
             return JSON.stringify(iem);
@@ -159,14 +163,14 @@ export default class IEMFormat {
 
 }
 
-function removeNullSpeakers(add: ADD){
+function removeNullSpeakers(add: ADD) {
 
     let new_chs: number[][] = [];
 
     add.decoder.matrices[0].matrix.forEach((ch, i) => {
-        if(chIsImag(add, i))
+        if (chIsImag(add, i))
             new_chs.push(ch);
-    }); 
+    });
 
     add.decoder.matrices[0].matrix = new_chs;
 

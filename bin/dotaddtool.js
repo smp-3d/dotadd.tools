@@ -37,7 +37,7 @@ program.command('validate <file>')
         .description('validate .add files')
         .action(require('./validate'));
 
-program.command('test')
+program.command('test <file>')
         .action(require('./test'));
 
 program.parse(process.argv);

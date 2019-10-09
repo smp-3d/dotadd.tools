@@ -1,5 +1,6 @@
 const wrap_options = require('./wrap_options');
-const { Converter, ConvertableTextFile, ParseResults } = require('../cjs/Converter');
+const { Converter } = require('../cjs/Converter');
+const { ConvertableTextFile, ConversionProcessData, ConverterOption } = require('../cjs/ConverterHelpers');
 const { ParseError } = require('../cjs/Util');
 const fs = require('fs');
 const c = require('chalk');
@@ -9,41 +10,41 @@ const { ADD } = require('dotadd.js');
 
 const { Logger } = require('../cjs/Logger');
 
-module.exports = function(files, options){
+module.exports = function (files, options) {
 
-    if(options.parent.V)
+    if (options.parent.V)
         Logger.prototype.verbose = true;
-    
 
-    let results = new ParseResults();
+
+    let results = new ConversionProcessData();
 
     let coptions = wrap_options(options,
-         'nojoin', 
-         'norm', 
-         'output', 
-         'format', 
-         'author', 
-         'name',
-         'description',
-         'version',
-         'guessOutputs', 
-         'reNorm',
-         'prettify',
-         'outDir');
+        'nojoin',
+        'norm',
+        'output',
+        'format',
+        'author',
+        'name',
+        'description',
+        'version',
+        'guessOutputs',
+        'reNorm',
+        'prettify',
+        'outDir');
 
     try {
 
         results = Converter.convert_string(
-                    files.map(f => new ConvertableTextFile(f, fs.readFileSync(f).toString())), 
-                                coptions);
+            files.map(f => new ConvertableTextFile(f, fs.readFileSync(f).toString())),
+            coptions);
 
-    } catch(e) {
+    } catch (e) {
 
-        if(e instanceof ParseError){
-            
+        if (e instanceof ParseError) {
+
             console.log();
 
-            if(options.parent.V)
+            if (options.parent.V)
                 console.log(e)
             else
                 console.log(c.red('Error ') + `when parsing '${e.file}':  ${e.message}`);
@@ -51,14 +52,14 @@ module.exports = function(files, options){
             process.exit(1);
 
         } else exit_error(e, options.parent.V);
-        
+
     }
 
     outputFile(results, coptions);
 
     let unused_coptions = coptions.getUnused();
 
-    if(unused_coptions.length > 0){
+    if (unused_coptions.length > 0) {
 
         console.log();
         console.log(`${c.yellow("Warning: ")}The following options were not used by the converter: `);
@@ -66,20 +67,21 @@ module.exports = function(files, options){
 
         console.log(
             columnify(
-                unused_coptions.map(opt => { 
-                    return { padding: '     ', option: c.cyan(opt.name) + ':', value: opt.value } }), 
+                unused_coptions.map(opt => {
+                    return { padding: '     ', option: c.cyan(opt.name) + ':', value: opt.value }
+                }),
                 { columnSplitter: '    ', showHeaders: false }
             )
         );
     }
 }
 
-function outputFile(results, options){
+function outputFile(results, options) {
 
     let output = options.use('output');
     let output_dir = options.use('outDir');
 
-    if(results.output_files.length < 1){
+    if (results.output_files.length < 1) {
 
         console.log();
         console.log("❌ Could not produce any output files");
@@ -91,7 +93,7 @@ function outputFile(results, options){
 
         let output_file = '';
 
-        if(output)
+        if (output)
             output_file = output;
         else
             output_file = `${res.name}_${res.format}.${res.container}`;
@@ -99,14 +101,14 @@ function outputFile(results, options){
         let ftype = output_file.slice((output_file.lastIndexOf(".") - 1 >>> 0) + 2);
         let file = output_file.replace(/^.*[\\\/]/, '').split('.').slice(0, -1).join('.');
 
-        if(results.output_files.length > 1)
+        if (results.output_files.length > 1)
             file = file + '_' + i;
 
         output_file = file + '.' + ftype;
 
         output_file = applyInterpolation(output_file, res.add, i);
 
-        if(output_dir)
+        if (output_dir)
             output_file = output_dir + "/" + output_file;
 
         console.log("Writing file: " + output_file);
@@ -116,11 +118,11 @@ function outputFile(results, options){
 
 }
 
-function exit_error(err, v){
+function exit_error(err, v) {
 
     console.log();
 
-    if(v)
+    if (v)
         console.log(err)
     else
         console.log(c.red("Program Error: ") + err.message);
@@ -128,7 +130,7 @@ function exit_error(err, v){
     process.exit(1);
 }
 
-function applyInterpolation(filename, add, index){
+function applyInterpolation(filename, add, index) {
 
     filename = filename.replace("{norm}", add.decoder.matrices[0].normalization);
     filename = filename.replace("{author}", add.author);

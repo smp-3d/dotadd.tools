@@ -1,13 +1,16 @@
-const Encoder = require('../cjs/AmbiEncoder').default;
-
-let enc = new Encoder(7);
-
-
-module.exports = () => {
+const { Converter } = require('../cjs/NewConverter');
+const { ConverterFile, ConverterOptions } = require('../cjs/ConverterHelpers')
+const fs = require('fs');
 
 
+module.exports = function (file, options) {
 
-    // enc.setCoords([[45, 45]]);
+    let str = fs.realpathSync(file);
 
-    console.log(directions);
+    let f = ConverterFile.fromPath(str);
+
+    f.data = fs.readFileSync(str).toString();
+
+    Converter.convert([f]);
+
 }
