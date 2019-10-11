@@ -21,10 +21,11 @@ $ npm install -g dotadd.tools
 
 - [dotadd - Overview](https://github.com/smp-3d/dotadd "dotadd Overview")
 
-### Integrations
+### Implementations
 
-- [libdotadd - C++ integration](https://github.com/smp-3d/libdotadd ".ADD C++")
-- [dotadd.py - Python integration](https://github.com/smp-3d/dotadd.py ".ADD Python")
+- [libdotadd - C++ implementation](https://github.com/smp-3d/libdotadd ".ADD C++")
+- [dotadd.py - Python implementation](https://github.com/smp-3d/dotadd.py ".ADD Python")
+- [dotadd.js - JavaScript/TypeScript implementation](https://github.com/smp-3d/dotadd.js)
 
 ### Tools
 
